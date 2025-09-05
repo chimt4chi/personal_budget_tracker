@@ -1,6 +1,7 @@
 import { pool } from "@/lib/db";
+import { requireAuth } from "@/lib/middleware/auth";
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method === "POST") {
     try {
       const { name, email, password_hash } = req.body;
@@ -38,3 +39,5 @@ export default async function handler(req, res) {
   res.setHeader("Allow", ["GET", "POST"]);
   res.status(405).end(`Method ${req.method} Not Allowed`);
 }
+
+export default requireAuth(handler);

@@ -1,8 +1,11 @@
 // todo -> search functionality, more modern ui
 "use client";
 import { useEffect, useState } from "react";
+import { useAuth } from "@/context/AuthContext"; // Import useAuth
+import Link from "next/link";
 
 export default function Home() {
+  const { token } = useAuth(); // Get token from context
   const [form, setForm] = useState({
     user_id: "",
     amount: "",
@@ -17,82 +20,106 @@ export default function Home() {
   const [groups, setGroups] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [users, setUsers] = useState([]);
-  const [editingTxn, setEditingTxn] = useState(null); // holds transaction to edit
-  const [editForm, setEditForm] = useState({}); // separate form state for edit
+  const [editingTxn, setEditingTxn] = useState(null);
+  const [editForm, setEditForm] = useState({});
+
+  // Helper function to make authenticated API calls
+  const apiCall = async (url, options = {}) => {
+    const token = localStorage.getItem("token"); // Get token from localStorage
+
+    const config = {
+      headers: {
+        "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` }), // ✅ Add token to all requests
+        ...options.headers,
+      },
+      ...options,
+    };
+
+    const response = await fetch(url, config);
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Request failed");
+    }
+
+    return response.json();
+  };
 
   useEffect(() => {
-    fetch("/api/categories")
-      .then((res) => res.json())
-      .then((data) => setCategories(Array.isArray(data) ? data : []));
+    // ✅ Add token to all these requests
+    const loadData = async () => {
+      try {
+        // Note: These endpoints might not need auth, but adding for consistency
+        const [categoriesData, groupsData, usersData] = await Promise.all([
+          apiCall("/api/categories"),
+          apiCall("/api/groups"),
+          apiCall("/api/users"),
+        ]);
 
-    fetch("/api/groups")
-      .then((res) => res.json())
-      .then((data) => setGroups(Array.isArray(data) ? data : []));
+        setCategories(Array.isArray(categoriesData) ? categoriesData : []);
+        setGroups(Array.isArray(groupsData) ? groupsData : []);
+        setUsers(Array.isArray(usersData) ? usersData : []);
 
-    fetch("/api/users")
-      .then((res) => res.json())
-      .then((data) => setUsers(Array.isArray(data) ? data : []));
+        await fetchTransactions();
+      } catch (error) {
+        console.error("Error loading initial data:", error);
+      }
+    };
 
-    fetchTransactions();
+    loadData();
   }, []);
 
-  const fetchTransactions = () => {
-    fetch("/api/transactions")
-      .then((res) => res.json())
-      .then((data) => {
-        if (!Array.isArray(data)) {
-          console.error("Transactions API did not return an array:", data);
-          setTransactions([]);
-          return;
-        }
+  const fetchTransactions = async () => {
+    try {
+      const data = await apiCall("/api/transactions"); // ✅ Now includes auth token
 
-        const sorted = data.sort(
-          (a, b) => new Date(b.updated_at) - new Date(a.updated_at)
-        );
-        setTransactions(sorted);
-      })
-      .catch((err) => {
-        console.error("Error fetching transactions:", err);
+      if (!Array.isArray(data)) {
+        console.error("Transactions API did not return an array:", data);
         setTransactions([]);
-      });
+        return;
+      }
+
+      const sorted = data.sort(
+        (a, b) => new Date(b.updated_at) - new Date(a.updated_at)
+      );
+      setTransactions(sorted);
+    } catch (err) {
+      console.error("Error fetching transactions:", err);
+      setTransactions([]);
+    }
   };
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  // Delete handler
+  // ✅ Updated delete handler with auth
   const handleDelete = async (id) => {
     if (!confirm("Are you sure you want to delete this transaction?")) return;
 
-    const res = await fetch(`/api/transactions/${id}`, {
-      method: "DELETE",
-    });
+    try {
+      await apiCall(`/api/transactions/${id}`, {
+        method: "DELETE",
+      });
 
-    const data = await res.json();
-    if (data.success) {
-      fetchTransactions();
-    } else {
-      alert(data.error);
+      await fetchTransactions();
+    } catch (error) {
+      alert(error.message);
     }
   };
 
+  // ✅ Updated submit handler with auth
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    let url = "/api/transactions";
-    let method = "POST";
+    try {
+      await apiCall("/api/transactions", {
+        method: "POST",
+        body: JSON.stringify(form),
+      });
 
-    const res = await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
-
-    const data = await res.json();
-
-    if (data.success) {
-      fetchTransactions();
+      await fetchTransactions();
       setForm({
         user_id: "",
         amount: "",
@@ -102,8 +129,8 @@ export default function Home() {
         txn_date: "",
         group_id: "",
       });
-    } else {
-      alert(data.error);
+    } catch (error) {
+      alert(error.message);
     }
   };
 
@@ -124,6 +151,14 @@ export default function Home() {
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-8">
+      <div className="flex gap-2">
+        <Link className="border p-2" href={"/"}>
+          Home
+        </Link>
+        <Link className="border p-2" href={"/budget"}>
+          budget
+        </Link>
+      </div>
       {/* Transaction Form */}
       <form
         onSubmit={handleSubmit}
@@ -225,22 +260,17 @@ export default function Home() {
               onSubmit={async (e) => {
                 e.preventDefault();
                 try {
-                  const res = await fetch(
-                    `/api/transactions/${editingTxn.id}`,
-                    {
-                      method: "PUT",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify(editForm),
-                    }
-                  );
-                  if (res.ok) {
-                    await fetchTransactions();
-                    setEditingTxn(null);
-                  } else {
-                    console.error("Error updating transaction");
-                  }
+                  // ✅ Updated edit request with auth
+                  await apiCall(`/api/transactions/${editingTxn.id}`, {
+                    method: "PUT",
+                    body: JSON.stringify(editForm),
+                  });
+
+                  await fetchTransactions();
+                  setEditingTxn(null);
                 } catch (err) {
-                  console.error("Error:", err);
+                  console.error("Error updating transaction:", err);
+                  alert(err.message);
                 }
               }}
               className="space-y-4"

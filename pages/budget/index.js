@@ -1,4 +1,18 @@
+import Link from "next/link";
 import { useEffect, useState } from "react";
+
+// DRY utility: fetch with Authorization header from localStorage
+function authFetch(url, options = {}) {
+  const token = localStorage.getItem("token");
+  return fetch(url, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(options.headers || {}),
+    },
+  });
+}
 
 export default function BudgetsPage() {
   const [categories, setCategories] = useState([]);
@@ -18,7 +32,7 @@ export default function BudgetsPage() {
   // Fetch all budgets
   const fetchBudgets = async () => {
     try {
-      const res = await fetch("/api/budgets");
+      const res = await authFetch("/api/budgets");
       const data = await res.json();
       setBudgets(data);
     } catch (err) {
@@ -32,12 +46,12 @@ export default function BudgetsPage() {
     fetchBudgets();
 
     // Fetch categories
-    fetch("/api/categories")
+    authFetch("/api/categories")
       .then((res) => res.json())
       .then((data) => setCategories(Array.isArray(data) ? data : []));
 
     // Fetch users
-    fetch("/api/users")
+    authFetch("/api/users")
       .then((res) => res.json())
       .then((data) => setUsers(Array.isArray(data) ? data : []));
   }, []);
@@ -54,16 +68,14 @@ export default function BudgetsPage() {
     try {
       if (formData.id) {
         // Update
-        await fetch(`/api/budgets/${formData.id}`, {
+        await authFetch(`/api/budgets/${formData.id}`, {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(formData),
         });
       } else {
         // Create
-        await fetch("/api/budgets", {
+        await authFetch("/api/budgets", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(formData),
         });
       }
@@ -88,7 +100,7 @@ export default function BudgetsPage() {
     if (!confirm("Are you sure you want to delete this budget?")) return;
 
     try {
-      await fetch(`/api/budgets/${id}`, { method: "DELETE" });
+      await authFetch(`/api/budgets/${id}`, { method: "DELETE" });
       fetchBudgets();
     } catch (err) {
       console.error("Error deleting budget:", err);
@@ -106,6 +118,14 @@ export default function BudgetsPage() {
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
+      <div className="flex gap-2">
+        <Link className="border p-2" href={"/"}>
+          Home
+        </Link>
+        <Link className="border p-2" href={"/transactions"}>
+          transactions
+        </Link>
+      </div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Budgets</h1>
         <button

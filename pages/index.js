@@ -1,162 +1,57 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useAuth } from "@/context/AuthContext";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 
-export default function Home() {
-  const [form, setForm] = useState({
-    user_id: "",
-    amount: "",
-    description: "",
-    category_id: "",
-    txn_type: "expense",
-    txn_date: "",
-    group_id: "",
-  });
+export default function Dashboard() {
+  const { user, logout, loading } = useAuth();
+  const router = useRouter();
 
-  const [categories, setCategories] = useState([]);
-  const [groups, setGroups] = useState([]);
-  const [transactions, setTransactions] = useState([]);
+  console.log("🔍 Dashboard - user:", user);
+  console.log("🔍 Dashboard - loading:", loading);
 
-  // Fetch categories & groups
   useEffect(() => {
-    fetch("/api/categories")
-      .then((res) => res.json())
-      .then(setCategories);
-    fetch("/api/groups")
-      .then((res) => res.json())
-      .then(setGroups);
-    fetchTransactions();
-  }, []);
+    console.log("🔍 Dashboard useEffect - loading:", loading, "user:", user);
 
-  const fetchTransactions = () => {
-    fetch("/api/transactions")
-      .then((res) => res.json())
-      .then(setTransactions);
-  };
-
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const res = await fetch("/api/transactions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
-    const data = await res.json();
-    if (data.success) {
-      fetchTransactions();
-      setForm({
-        ...form,
-        amount: "",
-        description: "",
-        category_id: "",
-        txn_date: "",
-        group_id: "",
-      });
-    } else {
-      alert(data.error);
+    if (!loading && !user) {
+      console.log("🔍 Dashboard: Redirecting to login");
+      router.push("/auth/login");
     }
-  };
+  }, [user, loading, router]);
 
-  return (
-    <div className="p-6 max-w-2xl mx-auto space-y-8">
-      {/* Transaction Form */}
-      <form
-        onSubmit={handleSubmit}
-        className="p-6 bg-white shadow rounded-xl space-y-4"
-      >
-        <input
-          name="user_id"
-          placeholder="User ID"
-          value={form.user_id}
-          onChange={handleChange}
-          className="w-full border p-2 rounded"
-        />
-        <input
-          name="amount"
-          type="number"
-          placeholder="Amount"
-          value={form.amount}
-          onChange={handleChange}
-          className="w-full border p-2 rounded"
-        />
-        <input
-          name="description"
-          placeholder="Description"
-          value={form.description}
-          onChange={handleChange}
-          className="w-full border p-2 rounded"
-        />
-
-        <select
-          name="category_id"
-          value={form.category_id}
-          onChange={handleChange}
-          className="w-full border p-2 rounded"
-        >
-          <option value="">Select Category</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-
-        <select
-          name="txn_type"
-          value={form.txn_type}
-          onChange={handleChange}
-          className="w-full border p-2 rounded"
-        >
-          <option value="expense">Expense</option>
-          <option value="income">Income</option>
-        </select>
-
-        <input
-          name="txn_date"
-          type="date"
-          value={form.txn_date}
-          onChange={handleChange}
-          className="w-full border p-2 rounded"
-        />
-
-        <select
-          name="group_id"
-          value={form.group_id}
-          onChange={handleChange}
-          className="w-full border p-2 rounded"
-        >
-          <option value="">No Group</option>
-          {groups.map((g) => (
-            <option key={g.id} value={g.id}>
-              {g.name}
-            </option>
-          ))}
-        </select>
-
-        <button
-          type="submit"
-          className="w-full bg-blue-600 text-white p-2 rounded"
-        >
-          Save
-        </button>
-      </form>
-
-      {/* Transactions List */}
-      <div className="bg-white p-6 shadow rounded-xl">
-        <h2 className="text-lg font-bold mb-4">Transactions</h2>
-        <ul className="space-y-2">
-          {transactions.map((t) => (
-            <li key={t.id} className="border p-2 rounded">
-              {t.txn_date} — {t.description} — ₹{t.amount} (
-              {t.category || "No Category"}){" "}
-              {t.group_name ? `in ${t.group_name}` : ""}
-            </li>
-          ))}
-        </ul>
+  if (loading) {
+    console.log("🔍 Dashboard: Showing loading state");
+    return (
+      <div className="p-6 flex justify-center">
+        <div>Loading...</div>
       </div>
+    );
+  }
+
+  if (!user) {
+    console.log("🔍 Dashboard: No user, should redirect");
+    return null;
+  }
+
+  console.log("🔍 Dashboard: Rendering dashboard");
+  return (
+    <div className="p-6">
+      <div className="flex gap-2">
+        <Link className="border p-2" href={"/transactions"}>
+          transactions
+        </Link>
+        <Link className="border p-2" href={"/budget"}>
+          budget
+        </Link>
+      </div>
+      <h1 className="text-xl font-bold">Welcome, {user.email} 🎉</h1>
+      <button
+        onClick={logout}
+        className="mt-4 bg-red-500 text-white py-2 px-4 rounded"
+      >
+        Logout
+      </button>
     </div>
   );
 }

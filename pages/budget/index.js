@@ -230,8 +230,8 @@ export default function BudgetsPage() {
           <table className="w-full text-sm text-left border-collapse">
             <thead className="bg-gray-100">
               <tr>
-                <th className="px-4 py-3 border">ID</th>
-                <th className="px-4 py-3 border">User</th>
+                <th className="px-4 py-3 border">#</th>
+                {/* <th className="px-4 py-3 border">User</th> */}
                 <th className="px-4 py-3 border">Category</th>
                 <th className="px-4 py-3 border">Period</th>
                 <th className="px-4 py-3 border">Limit</th>
@@ -241,10 +241,10 @@ export default function BudgetsPage() {
               </tr>
             </thead>
             <tbody>
-              {budgets.map((b) => (
+              {budgets.map((b, i) => (
                 <tr key={b.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 border">{b.id}</td>
-                  <td className="px-4 py-3 border">{b.user_name}</td>
+                  <td className="px-4 py-3 border">{i + 1}</td>
+                  {/* <td className="px-4 py-3 border">{b.user_name}</td> */}
                   <td className="px-4 py-3 border">{b.category_name}</td>
                   <td className="px-4 py-3 border">
                     {new Date(b.period_month).toLocaleDateString("en-US", {

@@ -1,13 +1,12 @@
 // todo -> search functionality, more modern ui
 "use client";
 import { useEffect, useState } from "react";
-import { useAuth } from "@/context/AuthContext"; // Import useAuth
+import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 
 export default function Home() {
-  const { token } = useAuth(); // Get token from context
+  const { token } = useAuth();
   const [form, setForm] = useState({
-    user_id: "",
     amount: "",
     description: "",
     category_id: "",
@@ -15,22 +14,23 @@ export default function Home() {
     txn_date: "",
     group_id: "",
   });
-
+  const [searchTerm, setSearchTerm] = useState("");
   const [categories, setCategories] = useState([]);
   const [groups, setGroups] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [users, setUsers] = useState([]);
   const [editingTxn, setEditingTxn] = useState(null);
   const [editForm, setEditForm] = useState({});
+  const [currentUser, setCurrentUser] = useState(null);
 
   // Helper function to make authenticated API calls
   const apiCall = async (url, options = {}) => {
-    const token = localStorage.getItem("token"); // Get token from localStorage
+    const token = localStorage.getItem("token");
 
     const config = {
       headers: {
         "Content-Type": "application/json",
-        ...(token && { Authorization: `Bearer ${token}` }), // ✅ Add token to all requests
+        ...(token && { Authorization: `Bearer ${token}` }),
         ...options.headers,
       },
       ...options,
@@ -46,11 +46,45 @@ export default function Home() {
     return response.json();
   };
 
+  // Helper function to get current user from localStorage
+  const getCurrentUser = () => {
+    const userData = localStorage.getItem("user");
+    if (userData) {
+      try {
+        return JSON.parse(userData);
+      } catch (error) {
+        console.error("Error parsing user data from localStorage:", error);
+        return null;
+      }
+    }
+    return null;
+  };
+
+  // Helper function to get category name by ID
+  const getCategoryName = (categoryId) => {
+    const category = categories.find((c) => c.id === categoryId);
+    return category ? category.name : "No Category";
+  };
+
+  // Helper function to get group name by ID
+  const getGroupName = (groupId) => {
+    const group = groups.find((g) => g.id === groupId);
+    return group ? group.name : "-";
+  };
+
+  // Helper function to get user name by ID
+  const getUserName = (userId) => {
+    const user = users.find((u) => u.id === userId);
+    return user ? user.name : "Unknown User";
+  };
+
   useEffect(() => {
-    // ✅ Add token to all these requests
+    // Get current user from localStorage
+    const user = getCurrentUser();
+    setCurrentUser(user);
+
     const loadData = async () => {
       try {
-        // Note: These endpoints might not need auth, but adding for consistency
         const [categoriesData, groupsData, usersData] = await Promise.all([
           apiCall("/api/categories"),
           apiCall("/api/groups"),
@@ -72,7 +106,7 @@ export default function Home() {
 
   const fetchTransactions = async () => {
     try {
-      const data = await apiCall("/api/transactions"); // ✅ Now includes auth token
+      const data = await apiCall("/api/transactions");
 
       if (!Array.isArray(data)) {
         console.error("Transactions API did not return an array:", data);
@@ -94,7 +128,6 @@ export default function Home() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  // ✅ Updated delete handler with auth
   const handleDelete = async (id) => {
     if (!confirm("Are you sure you want to delete this transaction?")) return;
 
@@ -109,19 +142,27 @@ export default function Home() {
     }
   };
 
-  // ✅ Updated submit handler with auth
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!currentUser || !currentUser.id) {
+      alert("User not found. Please login again.");
+      return;
+    }
+
     try {
+      const formData = {
+        ...form,
+        user_id: currentUser.id, // Automatically use current user's ID
+      };
+
       await apiCall("/api/transactions", {
         method: "POST",
-        body: JSON.stringify(form),
+        body: JSON.stringify(formData),
       });
 
       await fetchTransactions();
       setForm({
-        user_id: "",
         amount: "",
         description: "",
         category_id: "",
@@ -149,6 +190,23 @@ export default function Home() {
     });
   }
 
+  const filteredTransactions = transactions.filter((t) => {
+    const amountMatch = t.amount?.toString().includes(searchTerm);
+    const descriptionMatch = t.description
+      ?.toLowerCase()
+      .includes(searchTerm.toLowerCase());
+    const categoryName = getCategoryName(t.category_id);
+    const categoryMatch = categoryName
+      ?.toLowerCase()
+      .includes(searchTerm.toLowerCase());
+    const groupName = getGroupName(t.group_id);
+    const groupMatch = groupName
+      ?.toLowerCase()
+      .includes(searchTerm.toLowerCase());
+
+    return amountMatch || descriptionMatch || categoryMatch || groupMatch;
+  });
+
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-8">
       <div className="flex gap-2">
@@ -159,26 +217,22 @@ export default function Home() {
           budget
         </Link>
       </div>
+
+      {/* Show current user */}
+      {currentUser && (
+        <div className="bg-blue-50 p-3 rounded-lg">
+          <p className="text-sm text-blue-800">
+            Logged in as:{" "}
+            <strong>{currentUser.name || currentUser.email}</strong>
+          </p>
+        </div>
+      )}
+
       {/* Transaction Form */}
       <form
         onSubmit={handleSubmit}
         className="text-black p-6 bg-white shadow rounded-xl space-y-4"
       >
-        <select
-          name="user_id"
-          value={form.user_id}
-          onChange={handleChange}
-          className="w-full border p-2 rounded"
-          required
-        >
-          <option value="">Select User</option>
-          {users.map((u) => (
-            <option key={u.id} value={u.id}>
-              {u.name}
-            </option>
-          ))}
-        </select>
-
         <input
           name="amount"
           type="number"
@@ -246,6 +300,7 @@ export default function Home() {
         <button
           type="submit"
           className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700"
+          disabled={!currentUser}
         >
           Save
         </button>
@@ -260,7 +315,6 @@ export default function Home() {
               onSubmit={async (e) => {
                 e.preventDefault();
                 try {
-                  // ✅ Updated edit request with auth
                   await apiCall(`/api/transactions/${editingTxn.id}`, {
                     method: "PUT",
                     body: JSON.stringify(editForm),
@@ -275,23 +329,10 @@ export default function Home() {
               }}
               className="space-y-4"
             >
-              {/* User */}
-              <select
-                name="user_id"
-                value={editForm.user_id}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, user_id: e.target.value })
-                }
-                className="w-full border p-2 rounded text-black"
-                required
-              >
-                <option value="">Select User</option>
-                {users.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name}
-                  </option>
-                ))}
-              </select>
+              {/* User - Show as read-only info */}
+              <div className="w-full border p-2 rounded bg-gray-100 text-gray-600">
+                User: {getUserName(editForm.user_id)}
+              </div>
 
               {/* Amount */}
               <input
@@ -401,35 +442,48 @@ export default function Home() {
 
       {/* Transactions Table */}
       <div className="bg-white p-6 shadow rounded-xl overflow-x-auto">
-        <h2 className="text-lg font-bold mb-4">Transactions</h2>
+        <div className="flex justify-between items-center">
+          <h2 className="text-lg font-bold mb-4">Transactions</h2>
+          <div className="mb-4">
+            <input
+              type="text"
+              placeholder="Search by amount, description, category..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full border p-2 rounded"
+            />
+          </div>
+        </div>
         <table className="w-full border border-gray-300 text-sm">
           <thead className="bg-gray-100">
             <tr>
               <th className="border p-2">Date</th>
               <th className="border p-2">Description</th>
-              <th className="border p-2">Amount</th>
-              <th className="border p-2">Category</th>
               <th className="border p-2">Group</th>
+              <th className="border p-2">Category</th>
               <th className="border p-2">Type</th>
+              <th className="border p-2">Amount</th>
+              {/* <th className="border p-2">User</th> */}
               <th className="border p-2">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {transactions.map((t) => (
+            {filteredTransactions.map((t) => (
               <tr key={t.id} className="text-center">
-                <td className="border p-2">{formatDate(t.updated_at)}</td>
+                <td className="border p-2">{formatDate(t.txn_date)}</td>
                 <td className="border p-2">
                   {t.description || "No Description"}
                 </td>
-                <td className="border p-2">₹{t.amount}</td>
-                <td className="border p-2">{t.category || "No Category"}</td>
-                <td className="border p-2">{t.group_name || "-"}</td>
+                <td className="border p-2">{getGroupName(t.group_id)}</td>
+                <td className="border p-2">{getCategoryName(t.category_id)}</td>
                 <td className="border p-2 capitalize">{t.txn_type}</td>
+                <td className="border p-2">₹{t.amount}</td>
+                {/* <td className="border p-2">{getUserName(t.user_id)}</td> */}
                 <td className="border p-2 space-x-2">
                   <button
                     onClick={() => {
                       setEditingTxn(t);
-                      setEditForm({ ...t }); // preload form with txn data
+                      setEditForm({ ...t });
                     }}
                     className="bg-yellow-500 text-white px-2 py-1 rounded hover:bg-yellow-600"
                   >

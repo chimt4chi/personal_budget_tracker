@@ -1,20 +1,31 @@
 import { pool } from "@/lib/db";
+import { requireAuth } from "@/lib/middleware/auth";
 
-export default async function handler(req, res) {
+async function handler(req, res) {
+  const userId = req.user?.id;
+
   if (req.method === "POST") {
     try {
-      const { name, created_by } = req.body;
-      if (!name || !created_by)
-        return res.status(400).json({ error: "Missing fields" });
+      const { name } = req.body;
+      if (!name) {
+        return res.status(400).json({ error: "Missing group name" });
+      }
 
+      // Insert group with creator as created_by
       const [result] = await pool.query(
         "INSERT INTO user_groups (name, created_by) VALUES (?, ?)",
-        [name, created_by]
+        [name, userId]
       );
 
-      return res
-        .status(201)
-        .json({ id: result.insertId, message: "Group created" });
+      const groupId = result.insertId;
+
+      // Also insert creator as admin member
+      await pool.query(
+        "INSERT INTO group_members (group_id, user_id, role) VALUES (?, ?, ?)",
+        [groupId, userId, "admin"]
+      );
+
+      return res.status(201).json({ id: groupId, message: "Group created" });
     } catch (err) {
       console.error("Error creating group:", err);
       return res.status(500).json({ error: "Internal Server Error" });
@@ -37,3 +48,5 @@ export default async function handler(req, res) {
 }
 
 // select g.id, u.id as group_id, g.name as group_name, u.name as created_by from users u join user_groups g on u.id = g.created_by;
+
+export default requireAuth(handler);

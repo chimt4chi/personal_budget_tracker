@@ -9,7 +9,7 @@ export default function Dashboard() {
   const { user, logout, loading } = useAuth();
   const router = useRouter();
   const { token } = useAuth();
-  console.log(token);
+  // console.log(token);
 
   // console.log("🔍 Dashboard - user:", user);
   // console.log("🔍 Dashboard - loading:", loading);

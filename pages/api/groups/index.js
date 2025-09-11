@@ -1,3 +1,4 @@
+// /groups/index.js
 import { pool } from "@/lib/db";
 import { requireAuth } from "@/lib/middleware/auth";
 
@@ -7,25 +8,20 @@ async function handler(req, res) {
   if (req.method === "POST") {
     try {
       const { name } = req.body;
-      if (!name) {
-        return res.status(400).json({ error: "Missing group name" });
-      }
+      if (!name) return res.status(400).json({ error: "Missing group name" });
 
-      // Insert group with creator as created_by
       const [result] = await pool.query(
         "INSERT INTO user_groups (name, created_by) VALUES (?, ?)",
         [name, userId]
       );
-
       const groupId = result.insertId;
 
-      // Also insert creator as admin member
       await pool.query(
-        "INSERT INTO group_members (group_id, user_id, role) VALUES (?, ?, ?)",
-        [groupId, userId, "admin"]
+        "INSERT INTO group_members (group_id, user_id, role) VALUES (?, ?, 'admin')",
+        [groupId, userId]
       );
 
-      return res.status(201).json({ id: groupId, message: "Group created" });
+      return res.status(201).json({ id: groupId, group_name: name });
     } catch (err) {
       console.error("Error creating group:", err);
       return res.status(500).json({ error: "Internal Server Error" });
@@ -34,8 +30,14 @@ async function handler(req, res) {
 
   if (req.method === "GET") {
     try {
-      // const [rows] = await pool.query("SELECT * FROM user_groups");
-      const [rows] = await pool.query("SELECT id, name FROM user_groups");
+      const [rows] = await pool.query(
+        `SELECT g.id, g.name AS group_name, u.name AS owner_name, u.id AS owner_id
+         FROM user_groups g
+         JOIN users u ON g.created_by = u.id
+         JOIN group_members gm ON gm.group_id = g.id
+         WHERE gm.user_id = ?`,
+        [userId]
+      );
       return res.status(200).json(rows);
     } catch (err) {
       console.error("Error fetching groups:", err);
@@ -43,10 +45,60 @@ async function handler(req, res) {
     }
   }
 
-  res.setHeader("Allow", ["GET", "POST"]);
+  if (req.method === "PUT") {
+    try {
+      const { group_id, new_name } = req.body;
+      if (!group_id || !new_name) {
+        return res.status(400).json({ error: "Missing fields" });
+      }
+
+      const [rows] = await pool.query(
+        "SELECT created_by FROM user_groups WHERE id=?",
+        [group_id]
+      );
+      if (rows.length === 0)
+        return res.status(404).json({ error: "Group not found" });
+      if (rows[0].created_by !== userId) {
+        return res.status(403).json({ error: "Only owner can rename group" });
+      }
+
+      await pool.query("UPDATE user_groups SET name=? WHERE id=?", [
+        new_name,
+        group_id,
+      ]);
+      return res.status(200).json({ message: "Group renamed" });
+    } catch (err) {
+      console.error("Error updating group:", err);
+      return res.status(500).json({ error: "Internal Server Error" });
+    }
+  }
+
+  if (req.method === "DELETE") {
+    try {
+      const { group_id } = req.body;
+
+      const [rows] = await pool.query(
+        "SELECT created_by FROM user_groups WHERE id=?",
+        [group_id]
+      );
+      if (rows.length === 0)
+        return res.status(404).json({ error: "Group not found" });
+      if (rows[0].created_by !== userId) {
+        return res
+          .status(403)
+          .json({ error: "Only group owner can delete the group" });
+      }
+
+      await pool.query("DELETE FROM user_groups WHERE id=?", [group_id]);
+      return res.status(200).json({ message: "Group deleted" });
+    } catch (err) {
+      console.error("Error deleting group:", err);
+      return res.status(500).json({ error: "Internal Server Error" });
+    }
+  }
+
+  res.setHeader("Allow", ["GET", "POST", "PUT", "DELETE"]);
   res.status(405).end(`Method ${req.method} Not Allowed`);
 }
-
-// select g.id, u.id as group_id, g.name as group_name, u.name as created_by from users u join user_groups g on u.id = g.created_by;
 
 export default requireAuth(handler);

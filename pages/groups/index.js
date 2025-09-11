@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { FaTrash, FaPlus, FaEdit, FaCheck, FaTimes } from "react-icons/fa";
 
-// Helper: fetch with Authorization header from localStorage
 function authFetch(url, options = {}) {
   const token = localStorage.getItem("token");
   return fetch(url, {
@@ -17,88 +17,108 @@ function authFetch(url, options = {}) {
 export default function MyGroupsPage() {
   const [groups, setGroups] = useState([]);
   const [newGroupName, setNewGroupName] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [creatingGroup, setCreatingGroup] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const [editedName, setEditedName] = useState("");
 
-  // Fetch groups on mount
-  useEffect(() => {
+  const fetchGroups = async () => {
     setLoading(true);
-    authFetch("/api/groups/my-groups")
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch groups");
-        return res.json();
-      })
-      .then((data) => {
-        setGroups(Array.isArray(data) ? data : []);
-      })
-      .catch((err) => {
-        console.error(err);
-        setGroups([]);
-      })
-      .finally(() => setLoading(false));
-  }, []);
-
-  // Create a new group and add current user as admin member
-  const handleCreateGroup = async () => {
-    if (!newGroupName.trim()) {
-      alert("Please enter a group name");
-      return;
-    }
-
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
-    const created_by = user.id;
-
-    setLoading(true);
+    setError(null);
     try {
-      // Create group
-      const createRes = await authFetch("/api/groups", {
-        method: "POST",
-        body: JSON.stringify({
-          name: newGroupName,
-        }),
-      });
-
-      if (!createRes.ok) throw new Error("Failed to create group");
-
-      const { id: newGroupId } = await createRes.json();
-
-      // Add current user as admin member
-      await authFetch(`/api/groups/${newGroupId}/members`, {
-        method: "POST",
-        body: JSON.stringify({ role: "admin" }), // user_id inferred from auth middleware
-      });
-
-      setNewGroupName("");
-
-      // Refresh groups
-      const listRes = await authFetch("/api/groups/my-groups");
-      const updatedGroups = await listRes.json();
-      setGroups(Array.isArray(updatedGroups) ? updatedGroups : []);
-    } catch (error) {
-      alert("Error creating group");
-      console.error(error);
+      const res = await authFetch("/api/groups");
+      if (!res.ok) throw new Error("Failed to fetch groups");
+      const data = await res.json();
+      setGroups(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Error fetching groups:", err);
+      setError("Failed to load groups. Please try again.");
+      setGroups([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Delete group (only if current user is owner/admin, add permission handling as needed)
-  const handleDelete = async (groupId) => {
-    if (!confirm("Are you sure you want to delete this group?")) return;
+  useEffect(() => {
+    fetchGroups();
+  }, []);
 
-    setLoading(true);
+  const handleCreateGroup = async () => {
+    if (!newGroupName.trim()) {
+      setError("Please enter a group name.");
+      return;
+    }
+    setCreatingGroup(true);
+    setError(null);
     try {
-      const res = await authFetch(`/api/groups/${groupId}`, {
-        method: "DELETE",
+      const createRes = await authFetch("/api/groups", {
+        method: "POST",
+        body: JSON.stringify({ name: newGroupName }),
       });
-
-      if (!res.ok) throw new Error("Failed to delete group");
-
-      setGroups(groups.filter((g) => g.id !== groupId));
-    } catch (err) {
-      alert("Error deleting group");
-      console.error(err);
+      if (!createRes.ok) throw new Error("Failed to create group");
+      const newGroup = await createRes.json();
+      setGroups((prev) => [...prev, newGroup]);
+      setNewGroupName("");
+    } catch (error) {
+      console.error("Error creating group:", error);
+      setError("Error creating group. Please try again.");
     } finally {
-      setLoading(false);
+      setCreatingGroup(false);
+    }
+  };
+
+  const handleDelete = async (groupId) => {
+    if (!window.confirm("Are you sure you want to delete this group?")) return;
+    setDeletingId(groupId);
+    const original = groups;
+    setGroups(groups.filter((g) => g.id !== groupId));
+    try {
+      const res = await authFetch("/api/groups", {
+        method: "DELETE",
+        body: JSON.stringify({ group_id: groupId }),
+      });
+      if (!res.ok) throw new Error("Failed to delete group");
+    } catch (err) {
+      console.error("Error deleting group:", err);
+      setError("Error deleting group. Please try again.");
+      setGroups(original);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const startEditing = (group) => {
+    setEditingId(group.id);
+    setEditedName(group.group_name);
+  };
+
+  const cancelEditing = () => {
+    setEditingId(null);
+    setEditedName("");
+  };
+
+  const handleUpdate = async (groupId) => {
+    if (!editedName.trim()) {
+      setError("Please enter a new group name.");
+      return;
+    }
+    try {
+      const res = await authFetch("/api/groups", {
+        method: "PUT",
+        body: JSON.stringify({ group_id: groupId, new_name: editedName }),
+      });
+      if (!res.ok) throw new Error("Failed to update group");
+      setGroups((prev) =>
+        prev.map((g) =>
+          g.id === groupId ? { ...g, group_name: editedName } : g
+        )
+      );
+      cancelEditing();
+    } catch (err) {
+      console.error("Error updating group:", err);
+      setError("Error updating group. Please try again.");
     }
   };
 
@@ -122,15 +142,19 @@ export default function MyGroupsPage() {
           value={newGroupName}
           onChange={(e) => setNewGroupName(e.target.value)}
           className="flex-grow px-3 py-2 border rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          disabled={creatingGroup}
         />
         <button
           onClick={handleCreateGroup}
-          className="bg-blue-600 text-white px-5 rounded-r-md hover:bg-blue-700 transition"
-          disabled={loading}
+          className="bg-blue-600 text-white px-5 rounded-r-md hover:bg-blue-700 transition flex items-center gap-2"
+          disabled={creatingGroup}
         >
-          Create Group
+          {creatingGroup ? "Creating..." : "Create Group"}
+          <FaPlus />
         </button>
       </div>
+
+      {error && <p className="text-red-500 mb-4">{error}</p>}
 
       {loading ? (
         <p className="text-gray-600">Loading...</p>
@@ -138,28 +162,66 @@ export default function MyGroupsPage() {
         <p className="text-gray-600">You are not a member of any groups.</p>
       ) : (
         <ul className="space-y-4">
-          {groups.map(({ id, name, owner_name }) => (
+          {groups.map((g) => (
             <li
-              key={id}
+              key={g.id}
               className="border rounded p-4 flex justify-between items-center bg-gray-50 shadow-sm"
             >
-              <div>
-                <span
-                  href={`/groups/${id}`}
-                  className="text-lg font-semibold text-blue-600 hover:underline"
-                >
-                  {name}
-                </span>
-                <p className="text-sm text-gray-600">Owner: {owner_name}</p>
+              <div className="flex-1">
+                {editingId === g.id ? (
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="text"
+                      value={editedName}
+                      onChange={(e) => setEditedName(e.target.value)}
+                      className="px-2 py-1 border rounded focus:ring-2 focus:ring-blue-500"
+                    />
+                    <button
+                      onClick={() => handleUpdate(g.id)}
+                      className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded"
+                    >
+                      <FaCheck />
+                    </button>
+                    <button
+                      onClick={cancelEditing}
+                      className="bg-gray-400 hover:bg-gray-500 text-white px-3 py-1 rounded"
+                    >
+                      <FaTimes />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <Link
+                      href={`/groups/${g.id}`}
+                      className="text-lg font-semibold text-blue-600 hover:underline"
+                    >
+                      {g.group_name}
+                    </Link>
+                    <p className="text-sm text-gray-600">
+                      Owner: {g.owner_name}
+                    </p>
+                  </>
+                )}
               </div>
 
-              <button
-                onClick={() => handleDelete(id)}
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded transition"
-                disabled={loading}
-              >
-                Delete
-              </button>
+              {editingId !== g.id && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => startEditing(g)}
+                    className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded flex items-center gap-2"
+                  >
+                    Edit <FaEdit />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(g.id)}
+                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded flex items-center gap-2"
+                    disabled={deletingId === g.id}
+                  >
+                    {deletingId === g.id ? "Deleting..." : "Delete"}
+                    <FaTrash />
+                  </button>
+                </div>
+              )}
             </li>
           ))}
         </ul>

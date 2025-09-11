@@ -1,15 +1,19 @@
+// /groups/[id]/settlements.js
 import { pool } from "@/lib/db";
+import { requireAuth } from "@/lib/middleware/auth";
 
-export default async function handler(req, res) {
-  const { id } = req.query; // group_id
+async function handler(req, res) {
+  const { id: group_id } = req.query;
+  const userId = req.user?.id;
 
   if (req.method === "POST") {
     try {
-      const { paid_by, received_by, amount } = req.body;
+      const { from_user_id, to_user_id, amount, notes } = req.body;
 
       await pool.query(
-        "INSERT INTO settlements (group_id, paid_by, received_by, amount) VALUES (?, ?, ?, ?)",
-        [id, paid_by, received_by, amount]
+        `INSERT INTO settlements (group_id, from_user_id, to_user_id, amount, notes) 
+         VALUES (?, ?, ?, ?, ?)`,
+        [group_id, from_user_id, to_user_id, amount, notes || null]
       );
 
       return res.status(201).json({ message: "Settlement recorded" });
@@ -22,8 +26,12 @@ export default async function handler(req, res) {
   if (req.method === "GET") {
     try {
       const [rows] = await pool.query(
-        "SELECT * FROM settlements WHERE group_id=?",
-        [id]
+        `SELECT s.*, fu.name AS from_user, tu.name AS to_user
+         FROM settlements s
+         JOIN users fu ON s.from_user_id = fu.id
+         JOIN users tu ON s.to_user_id = tu.id
+         WHERE s.group_id=?`,
+        [group_id]
       );
       return res.status(200).json(rows);
     } catch (err) {
@@ -32,6 +40,61 @@ export default async function handler(req, res) {
     }
   }
 
-  res.setHeader("Allow", ["GET", "POST"]);
+  if (req.method === "PUT") {
+    try {
+      const { settlement_id, new_amount, new_notes } = req.body;
+
+      const [rows] = await pool.query(
+        "SELECT from_user_id FROM settlements WHERE id=?",
+        [settlement_id]
+      );
+      if (rows.length === 0)
+        return res.status(404).json({ error: "Settlement not found" });
+      if (rows[0].from_user_id !== userId) {
+        return res
+          .status(403)
+          .json({ error: "Only creator can update settlement" });
+      }
+
+      await pool.query("UPDATE settlements SET amount=?, notes=? WHERE id=?", [
+        new_amount,
+        new_notes || null,
+        settlement_id,
+      ]);
+
+      return res.status(200).json({ message: "Settlement updated" });
+    } catch (err) {
+      console.error("Error updating settlement:", err);
+      return res.status(500).json({ error: "Internal Server Error" });
+    }
+  }
+
+  if (req.method === "DELETE") {
+    try {
+      const { settlement_id } = req.body;
+
+      const [rows] = await pool.query(
+        "SELECT from_user_id FROM settlements WHERE id=?",
+        [settlement_id]
+      );
+      if (rows.length === 0)
+        return res.status(404).json({ error: "Settlement not found" });
+      if (rows[0].from_user_id !== userId) {
+        return res
+          .status(403)
+          .json({ error: "Only creator can delete settlement" });
+      }
+
+      await pool.query("DELETE FROM settlements WHERE id=?", [settlement_id]);
+      return res.status(200).json({ message: "Settlement deleted" });
+    } catch (err) {
+      console.error("Error deleting settlement:", err);
+      return res.status(500).json({ error: "Internal Server Error" });
+    }
+  }
+
+  res.setHeader("Allow", ["GET", "POST", "PUT", "DELETE"]);
   res.status(405).end(`Method ${req.method} Not Allowed`);
 }
+
+export default requireAuth(handler);

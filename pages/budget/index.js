@@ -117,13 +117,16 @@ export default function BudgetsPage() {
   };
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <div className="flex gap-2">
-        <Link className="border p-2" href={"/"}>
+    <div className="max-w-4xl mx-auto mt-10 font-sans p-4">
+      <div className="flex gap-4 mb-6">
+        <Link className="text-blue-600 hover:underline" href={"/"}>
           Home
         </Link>
-        <Link className="border p-2" href={"/transactions"}>
+        <Link className="text-blue-600 hover:underline" href={"/transactions"}>
           transactions
+        </Link>
+        <Link className="text-blue-600 hover:underline" href={"/groups"}>
+          Groups
         </Link>
       </div>
       <div className="flex justify-between items-center mb-6">

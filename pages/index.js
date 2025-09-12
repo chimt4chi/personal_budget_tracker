@@ -39,19 +39,23 @@ export default function Dashboard() {
 
   // console.log("🔍 Dashboard: Rendering dashboard");
   return (
-    <div className="p-6">
-      <div className="flex gap-2">
-        <Link className="border p-2" href={"/transactions"}>
-          transactions
+    <div className="max-w-4xl mx-auto mt-10 font-sans p-4">
+      <div className="flex gap-4 mb-6">
+        <Link className="text-blue-600 hover:underline" href={"/transactions"}>
+          Transactions
         </Link>
-        <Link className="border p-2" href={"/budget"}>
-          budget
+        <Link className="text-blue-600 hover:underline" href={"/budget"}>
+          Budget
+        </Link>
+        <Link className="text-blue-600 hover:underline" href={"/groups"}>
+          Groups
         </Link>
       </div>
       {/* <h1 className="text-xl font-bold">Welcome, {user.email} 🎉</h1> */}
       <div className="bg-blue-50 p-3 rounded-lg flex justify-between items-center">
         <p className="text-sm text-blue-800">
-          Logged in as: <strong>{user.name}</strong>
+          Logged in as: <strong>{user.name}</strong> Email:
+          <strong>{user.email}</strong>
         </p>
         <button
           onClick={logout}

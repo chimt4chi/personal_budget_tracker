@@ -234,6 +234,9 @@ export default function MyGroupsPage() {
         <Link href="/transactions">
           <span className="text-blue-600 hover:underline">Transactions</span>
         </Link>
+        <Link href="/budget">
+          <span className="text-blue-600 hover:underline">Budget</span>
+        </Link>
       </div>
 
       <h1 className="text-3xl font-bold mb-6 text-gray-800">My Groups</h1>

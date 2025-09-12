@@ -19,8 +19,8 @@ async function handler(req, res) {
 
       const [result] = await pool.query(
         `INSERT INTO group_expenses 
-         (group_id, created_by, paid_by, category_id, amount, description, split_type, txn_date) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, CURDATE())`,
+       (group_id, created_by, paid_by, category_id, amount, description, split_type, txn_date) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, CURDATE())`,
         [
           group_id,
           userId,
@@ -34,11 +34,15 @@ async function handler(req, res) {
       const expenseId = result.insertId;
 
       if (Array.isArray(split_details)) {
+        const seen = new Set();
         for (const split of split_details) {
+          if (seen.has(split.user_id)) continue; // ✅ skip duplicates
+          seen.add(split.user_id);
+
           await pool.query(
             `INSERT INTO group_expense_splits 
-             (group_expense_id, user_id, share_amount, percentage, shares) 
-             VALUES (?, ?, ?, ?, ?)`,
+           (group_expense_id, user_id, share_amount, percentage, shares) 
+           VALUES (?, ?, ?, ?, ?)`,
             [
               expenseId,
               split.user_id,

@@ -1,4 +1,4 @@
-// /groups/index.js
+// /api/groups/index.js
 import { pool } from "@/lib/db";
 import { requireAuth } from "@/lib/middleware/auth";
 
@@ -32,11 +32,16 @@ async function handler(req, res) {
     try {
       const [rows] = await pool.query(
         `SELECT g.id, g.name AS group_name, u.name AS owner_name, u.id AS owner_id
-         FROM user_groups g
-         JOIN users u ON g.created_by = u.id
-         JOIN group_members gm ON gm.group_id = g.id
-         WHERE gm.user_id = ?`,
-        [userId]
+       FROM user_groups g
+       JOIN users u ON g.created_by = u.id
+       WHERE g.created_by = ?
+          OR g.id IN (
+            SELECT gm.group_id 
+            FROM group_members gm 
+            WHERE gm.user_id = ?
+          )
+       GROUP BY g.id, g.name, u.name, u.id`,
+        [userId, userId]
       );
       return res.status(200).json(rows);
     } catch (err) {

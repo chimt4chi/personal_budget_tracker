@@ -7,20 +7,32 @@ async function handler(req, res) {
   const userId = req.user?.id;
 
   if (req.method === "POST") {
-    try {
-      const { target_user_id, role } = req.body;
-      const memberId = target_user_id || userId;
+    const { target_user_id, target_user_email } = req.body;
 
-      await pool.query(
-        "INSERT INTO group_members (group_id, user_id, role) VALUES (?, ?, ?)",
-        [group_id, memberId, role || "member"]
-      );
+    let userIdToAdd = target_user_id;
 
-      return res.status(201).json({ message: "Member added" });
-    } catch (err) {
-      console.error("Error adding member:", err);
-      return res.status(500).json({ error: "Internal Server Error" });
+    if (!userIdToAdd && target_user_email) {
+      const [rows] = await pool.query("SELECT id FROM users WHERE email=?", [
+        target_user_email,
+      ]);
+      if (rows.length === 0) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      userIdToAdd = rows[0].id;
     }
+
+    if (!userIdToAdd) {
+      return res.status(400).json({ error: "Missing user info" });
+    }
+
+    // prevent duplicate membership
+    await pool.query(
+      `INSERT IGNORE INTO group_members (group_id, user_id, role) 
+     VALUES (?, ?, 'member')`,
+      [group_id, userIdToAdd]
+    );
+
+    return res.status(201).json({ message: "Member added" });
   }
 
   if (req.method === "GET") {
@@ -65,19 +77,24 @@ async function handler(req, res) {
 
   if (req.method === "DELETE") {
     try {
-      const { target_user_id } = req.body;
+      const { member_id } = req.body;
 
-      const [roles] = await pool.query(
-        "SELECT role FROM group_members WHERE group_id=? AND user_id=?",
-        [group_id, userId]
+      if (!member_id) {
+        return res.status(400).json({ error: "Missing member_id" });
+      }
+
+      // Prevent owner from being removed
+      const [ownerCheck] = await pool.query(
+        "SELECT created_by FROM user_groups WHERE id=?",
+        [group_id]
       );
-      if (roles.length === 0 || roles[0].role !== "admin") {
-        return res.status(403).json({ error: "Only admin can remove members" });
+      if (ownerCheck.length && ownerCheck[0].created_by === member_id) {
+        return res.status(403).json({ error: "Owner cannot be removed" });
       }
 
       await pool.query(
         "DELETE FROM group_members WHERE group_id=? AND user_id=?",
-        [group_id, target_user_id]
+        [group_id, member_id]
       );
 
       return res.status(200).json({ message: "Member removed" });

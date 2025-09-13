@@ -3,12 +3,31 @@ import { pool } from "@/lib/db";
 import { requireAuth } from "@/lib/middleware/auth";
 
 async function handler(req, res) {
-  const { id: group_id } = req.query;
+  // ✅ Normalize group_id (Next.js gives string | string[])
+  const group_id = Array.isArray(req.query.id) ? req.query.id[0] : req.query.id;
   const userId = req.user?.id;
+
+  if (!group_id) {
+    return res.status(400).json({ error: "Missing group ID" });
+  }
 
   if (req.method === "POST") {
     try {
       const { from_user_id, to_user_id, amount, notes } = req.body;
+
+      if (!from_user_id || !to_user_id || !amount) {
+        return res
+          .status(400)
+          .json({ error: "from_user_id, to_user_id and amount are required" });
+      }
+
+      console.log("Creating settlement:", {
+        group_id,
+        from_user_id,
+        to_user_id,
+        amount,
+        notes,
+      });
 
       await pool.query(
         `INSERT INTO settlements (group_id, from_user_id, to_user_id, amount, notes) 
@@ -44,6 +63,12 @@ async function handler(req, res) {
     try {
       const { settlement_id, new_amount, new_notes } = req.body;
 
+      if (!settlement_id || !new_amount) {
+        return res
+          .status(400)
+          .json({ error: "settlement_id and new_amount are required" });
+      }
+
       const [rows] = await pool.query(
         "SELECT from_user_id FROM settlements WHERE id=?",
         [settlement_id]
@@ -72,6 +97,10 @@ async function handler(req, res) {
   if (req.method === "DELETE") {
     try {
       const { settlement_id } = req.body;
+
+      if (!settlement_id) {
+        return res.status(400).json({ error: "settlement_id is required" });
+      }
 
       const [rows] = await pool.query(
         "SELECT from_user_id FROM settlements WHERE id=?",

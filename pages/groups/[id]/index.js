@@ -26,14 +26,23 @@ export default function GroupDetailPage() {
   const { id } = router.query;
 
   const [activeTab, setActiveTab] = useState("members");
-
   const [members, setMembers] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [balances, setBalances] = useState([]);
   const [settlements, setSettlements] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
 
+  // form states
   const [newMemberEmail, setNewMemberEmail] = useState("");
-  const [newExpense, setNewExpense] = useState({ description: "", amount: "" });
+  const [suggestions, setSuggestions] = useState([]);
+  const [selectedUser, setSelectedUser] = useState(null);
+
+  const [newExpense, setNewExpense] = useState({
+    description: "",
+    amount: "",
+    paid_by: "",
+  });
+
   const [newSettlement, setNewSettlement] = useState({ to: "", amount: "" });
 
   const fetchData = async () => {
@@ -50,6 +59,10 @@ export default function GroupDetailPage() {
       setExpenses(e);
       setBalances(b);
       setSettlements(s);
+
+      // Get logged-in user info
+      const me = await authFetch("/api/me").then((r) => r.json());
+      setCurrentUser(me);
     } catch (err) {
       console.error("Error loading group data:", err);
     }
@@ -59,13 +72,47 @@ export default function GroupDetailPage() {
     fetchData();
   }, [id]);
 
+  const handleAddMember = async () => {
+    if (!selectedUser) {
+      alert("Please select a user from suggestions");
+      return;
+    }
+    try {
+      await authFetch(`/api/groups/${id}/members`, {
+        method: "POST",
+        body: JSON.stringify({ target_user_id: selectedUser.id }),
+      });
+      setNewMemberEmail("");
+      setSelectedUser(null);
+      fetchData();
+    } catch (err) {
+      console.error("Error adding member:", err);
+    }
+  };
+
+  const handleRemoveMember = async (memberId) => {
+    if (!window.confirm("Remove this member?")) return;
+    try {
+      await authFetch(`/api/groups/${id}/members`, {
+        method: "DELETE",
+        body: JSON.stringify({ member_id: memberId }),
+      });
+      fetchData();
+    } catch (err) {
+      console.error("Error removing member:", err);
+    }
+  };
+
   const handleAddExpense = async () => {
-    if (!newExpense.description || !newExpense.amount) return;
+    if (!newExpense.description || !newExpense.amount || !newExpense.paid_by) {
+      alert("Please fill all fields");
+      return;
+    }
     try {
       await authFetch(`/api/groups/${id}/expenses`, {
         method: "POST",
         body: JSON.stringify({
-          paid_by: members[0]?.id, // for demo, use first member
+          paid_by: parseInt(newExpense.paid_by),
           amount: parseFloat(newExpense.amount),
           description: newExpense.description,
           split_type: "equal",
@@ -75,7 +122,7 @@ export default function GroupDetailPage() {
           })),
         }),
       });
-      setNewExpense({ description: "", amount: "" });
+      setNewExpense({ description: "", amount: "", paid_by: "" });
       fetchData();
     } catch (err) {
       console.error("Error adding expense:", err);
@@ -83,12 +130,12 @@ export default function GroupDetailPage() {
   };
 
   const handleAddSettlement = async () => {
-    if (!newSettlement.to || !newSettlement.amount) return;
+    if (!newSettlement.to || !newSettlement.amount || !currentUser) return;
     try {
       await authFetch(`/api/groups/${id}/settlements`, {
         method: "POST",
         body: JSON.stringify({
-          from_user_id: members[0]?.id, // demo: first member paying
+          from_user_id: currentUser.id,
           to_user_id: parseInt(newSettlement.to),
           amount: parseFloat(newSettlement.amount),
         }),
@@ -114,59 +161,100 @@ export default function GroupDetailPage() {
 
       {/* Tabs */}
       <div className="flex gap-4 mb-6 border-b">
-        <button
-          className={`px-4 py-2 ${
-            activeTab === "members"
-              ? "border-b-2 border-blue-600 text-blue-600"
-              : ""
-          }`}
-          onClick={() => setActiveTab("members")}
-        >
-          <FaUsers className="inline mr-2" /> Members
-        </button>
-        <button
-          className={`px-4 py-2 ${
-            activeTab === "expenses"
-              ? "border-b-2 border-blue-600 text-blue-600"
-              : ""
-          }`}
-          onClick={() => setActiveTab("expenses")}
-        >
-          <FaMoneyBill className="inline mr-2" /> Expenses
-        </button>
-        <button
-          className={`px-4 py-2 ${
-            activeTab === "balances"
-              ? "border-b-2 border-blue-600 text-blue-600"
-              : ""
-          }`}
-          onClick={() => setActiveTab("balances")}
-        >
-          <FaBalanceScale className="inline mr-2" /> Balances
-        </button>
-        <button
-          className={`px-4 py-2 ${
-            activeTab === "settlements"
-              ? "border-b-2 border-blue-600 text-blue-600"
-              : ""
-          }`}
-          onClick={() => setActiveTab("settlements")}
-        >
-          🤝 Settlements
-        </button>
+        {[
+          { key: "members", label: "Members", icon: <FaUsers /> },
+          { key: "expenses", label: "Expenses", icon: <FaMoneyBill /> },
+          { key: "balances", label: "Balances", icon: <FaBalanceScale /> },
+          { key: "settlements", label: "Settlements", icon: "🤝" },
+        ].map((tab) => (
+          <button
+            key={tab.key}
+            className={`px-4 py-2 flex items-center gap-2 ${
+              activeTab === tab.key
+                ? "border-b-2 border-blue-600 text-blue-600"
+                : "text-gray-600"
+            }`}
+            onClick={() => setActiveTab(tab.key)}
+          >
+            {tab.icon} {tab.label}
+          </button>
+        ))}
       </div>
 
       {/* Members Tab */}
       {activeTab === "members" && (
         <div>
           <h2 className="text-lg font-semibold mb-2">Group Members</h2>
-          <ul className="space-y-2">
+          <ul className="space-y-2 mb-4">
             {members.map((m) => (
-              <li key={m.id} className="p-2 border rounded bg-gray-50">
-                {m.name} ({m.email})
+              <li
+                key={m.id}
+                className="p-2 border rounded bg-gray-50 flex justify-between items-center"
+              >
+                <span>
+                  {m.name} ({m.email})
+                </span>
+                {m.role !== "admin" && (
+                  <button
+                    onClick={() => handleRemoveMember(m.id)}
+                    className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs"
+                  >
+                    Remove
+                  </button>
+                )}
               </li>
             ))}
           </ul>
+
+          {/* Add Member */}
+          <div className="relative">
+            <input
+              type="email"
+              placeholder="Enter member email"
+              value={newMemberEmail}
+              onChange={async (e) => {
+                const val = e.target.value;
+                setNewMemberEmail(val);
+                if (val.length >= 2) {
+                  try {
+                    const res = await authFetch(`/api/users/search?q=${val}`);
+                    if (res.ok) {
+                      const data = await res.json();
+                      setSuggestions(data);
+                    }
+                  } catch (err) {
+                    console.error("Error fetching suggestions:", err);
+                  }
+                } else {
+                  setSuggestions([]);
+                }
+              }}
+              className="px-2 py-1 border rounded w-full"
+            />
+            {suggestions.length > 0 && (
+              <ul className="absolute z-10 bg-white border w-full rounded mt-1 shadow">
+                {suggestions.map((s) => (
+                  <li
+                    key={s.id}
+                    onClick={() => {
+                      setNewMemberEmail(s.email);
+                      setSelectedUser(s);
+                      setSuggestions([]);
+                    }}
+                    className="p-2 hover:bg-gray-100 cursor-pointer text-sm"
+                  >
+                    {s.name} ({s.email})
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <button
+            onClick={handleAddMember}
+            className="mt-2 bg-blue-600 text-white px-3 py-1 rounded"
+          >
+            Add
+          </button>
         </div>
       )}
 
@@ -174,7 +262,7 @@ export default function GroupDetailPage() {
       {activeTab === "expenses" && (
         <div>
           <h2 className="text-lg font-semibold mb-2">Expenses</h2>
-          <div className="flex gap-2 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 mb-4">
             <input
               type="text"
               placeholder="Description"
@@ -193,11 +281,25 @@ export default function GroupDetailPage() {
               }
               className="px-2 py-1 border rounded"
             />
+            <select
+              value={newExpense.paid_by}
+              onChange={(e) =>
+                setNewExpense({ ...newExpense, paid_by: e.target.value })
+              }
+              className="px-2 py-1 border rounded"
+            >
+              <option value="">Who Paid?</option>
+              {members.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
             <button
               onClick={handleAddExpense}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1 rounded flex items-center gap-2"
+              className="bg-green-600 text-white px-3 rounded"
             >
-              Add <FaPlus />
+              Add
             </button>
           </div>
           <ul className="space-y-2">
@@ -262,12 +364,15 @@ export default function GroupDetailPage() {
               className="px-2 py-1 border rounded"
             >
               <option value="">Select member</option>
-              {members.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
+              {members
+                .filter((m) => m.id !== currentUser?.id) // ✅ exclude current user
+                .map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
             </select>
+
             <input
               type="number"
               placeholder="Amount"

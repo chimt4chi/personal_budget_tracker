@@ -71,7 +71,7 @@ export default function LoginPage() {
           onClick={() => router.push("/auth/register")}
           className="mt-2 w-full py-2 rounded border border-gray-300 text-gray-700 hover:bg-gray-100"
         >
-          Don't have an account? Register
+          Don&apos;t have an account? Register
         </button>
       </form>
     </div>

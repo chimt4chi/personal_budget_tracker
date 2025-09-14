@@ -9,14 +9,12 @@ export default function TransactionCharts({ token }) {
 
   useEffect(() => {
     async function fetchData() {
-      // Fetch transactions
       const txnRes = await fetch("/api/transactions", {
         headers: { Authorization: `Bearer ${token}` },
       });
       const txnData = await txnRes.json();
       setTransactions(Array.isArray(txnData) ? txnData : []);
 
-      // Fetch categories
       const catRes = await fetch("/api/categories", {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -40,20 +38,23 @@ export default function TransactionCharts({ token }) {
   const labels = Object.keys(sums);
   const dataValues = Object.values(sums);
 
+  const colors = [
+    "#3b82f6", // blue
+    "#06b6d4", // cyan
+    "#10b981", // green
+    "#f59e0b", // amber
+    "#ef4444", // red
+    "#8b5cf6", // violet
+  ];
+
   const barData = {
     labels,
     datasets: [
       {
         label: "Spend by Category",
         data: dataValues,
-        backgroundColor: [
-          "#2563eb",
-          "#22d3ee",
-          "#10b981",
-          "#fbbf24",
-          "#f87171",
-          "#8b5cf6",
-        ],
+        backgroundColor: colors,
+        borderRadius: 6,
       },
     ],
   };
@@ -62,41 +63,51 @@ export default function TransactionCharts({ token }) {
     labels,
     datasets: [
       {
-        label: "Spend by Category",
         data: dataValues,
-        backgroundColor: [
-          "#2563eb",
-          "#22d3ee",
-          "#10b981",
-          "#fbbf24",
-          "#f87171",
-          "#8b5cf6",
-        ],
+        backgroundColor: colors,
         borderColor: "#fff",
-        borderWidth: 1,
+        borderWidth: 2,
       },
     ],
   };
 
   const chartOptions = {
+    responsive: true,
     maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: "bottom",
+        labels: {
+          color: "#374151",
+          padding: 16,
+          font: { size: 13, weight: "500" },
+        },
+      },
+    },
+    animation: {
+      duration: 1200,
+      easing: "easeOutQuart",
+    },
   };
 
   return (
-    <div className="flex justify-around bg-white shadow p-6 rounded-xl my-6 space-y-10">
-      <div>
-        <h2 className="text-lg font-bold mb-4">
-          Spending Overview - Bar Chart
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 my-8">
+      {/* Bar Chart Card */}
+      <div className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition">
+        <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+          📊 Spending Overview
         </h2>
-        <div style={{ width: 400, height: 300 }}>
+        <div className="h-72">
           <Bar data={barData} options={chartOptions} />
         </div>
       </div>
-      <div>
-        <h2 className="text-lg font-bold mb-4">
-          Spending Overview - Pie Chart
+
+      {/* Pie Chart Card */}
+      <div className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition">
+        <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+          🥧 Category Breakdown
         </h2>
-        <div style={{ width: 400, height: 300 }}>
+        <div className="h-72">
           <Pie data={pieData} options={chartOptions} />
         </div>
       </div>

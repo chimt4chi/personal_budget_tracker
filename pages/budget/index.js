@@ -1,5 +1,18 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import {
+  FaHome,
+  FaListUl,
+  FaUsers,
+  FaPlus,
+  FaEdit,
+  FaTrash,
+  FaMoneyBillWave,
+  FaCalendarAlt,
+  FaWallet,
+  FaCheck,
+  FaTimes,
+} from "react-icons/fa";
 
 // DRY utility: fetch with Authorization header from localStorage
 function authFetch(url, options = {}) {
@@ -16,7 +29,7 @@ function authFetch(url, options = {}) {
 
 export default function BudgetsPage() {
   const [categories, setCategories] = useState([]);
-  const [users, setUsers] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
   const [budgets, setBudgets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -29,12 +42,19 @@ export default function BudgetsPage() {
     carryover_policy: "none",
   });
 
-  // Fetch all budgets
+  const getCurrentUser = () => {
+    try {
+      return JSON.parse(localStorage.getItem("user"));
+    } catch {
+      return null;
+    }
+  };
+
   const fetchBudgets = async () => {
     try {
       const res = await authFetch("/api/budgets");
       const data = await res.json();
-      setBudgets(data);
+      setBudgets(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Error fetching budgets:", err);
     } finally {
@@ -43,47 +63,43 @@ export default function BudgetsPage() {
   };
 
   useEffect(() => {
+    setCurrentUser(getCurrentUser());
     fetchBudgets();
 
-    // Fetch categories
     authFetch("/api/categories")
       .then((res) => res.json())
       .then((data) => setCategories(Array.isArray(data) ? data : []));
-
-    // Fetch users
-    authFetch("/api/users")
-      .then((res) => res.json())
-      .then((data) => setUsers(Array.isArray(data) ? data : []));
   }, []);
 
-  // Handle form changes
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+  useEffect(() => {
+    if (currentUser && !formData.id) {
+      setFormData((prev) => ({ ...prev, user_id: currentUser.id }));
+    }
+  }, [currentUser]);
 
-  // Create or Update budget
+  const handleChange = (e) =>
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     try {
+      const submitData = { ...formData, user_id: currentUser.id };
       if (formData.id) {
-        // Update
         await authFetch(`/api/budgets/${formData.id}`, {
           method: "PUT",
-          body: JSON.stringify(formData),
+          body: JSON.stringify(submitData),
         });
       } else {
-        // Create
         await authFetch("/api/budgets", {
           method: "POST",
-          body: JSON.stringify(formData),
+          body: JSON.stringify(submitData),
         });
       }
 
       setShowForm(false);
       setFormData({
         id: null,
-        user_id: "",
+        user_id: currentUser?.id || "",
         category_id: "",
         period_month: "",
         limit_amount: "",
@@ -95,10 +111,8 @@ export default function BudgetsPage() {
     }
   };
 
-  // Delete budget
   const handleDelete = async (id) => {
-    if (!confirm("Are you sure you want to delete this budget?")) return;
-
+    if (!confirm("Delete this budget?")) return;
     try {
       await authFetch(`/api/budgets/${id}`, { method: "DELETE" });
       fetchBudgets();
@@ -107,61 +121,85 @@ export default function BudgetsPage() {
     }
   };
 
-  // Edit budget
   const handleEdit = (budget) => {
     setFormData({
       ...budget,
-      period_month: budget.period_month.slice(0, 7), // keep only YYYY-MM
+      period_month: budget.period_month.slice(0, 7),
+    });
+    setShowForm(true);
+  };
+
+  const handleNewBudget = () => {
+    setFormData({
+      id: null,
+      user_id: currentUser?.id || "",
+      category_id: "",
+      period_month: "",
+      limit_amount: "",
+      carryover_policy: "none",
     });
     setShowForm(true);
   };
 
   return (
-    <div className="max-w-4xl mx-auto mt-10 font-sans p-4">
-      <div className="flex gap-4 mb-6">
-        <Link className="text-blue-600 hover:underline" href={"/"}>
-          Home
+    <div className="max-w-6xl mx-auto mt-10 font-sans px-4">
+      {/* Top nav */}
+      <div className="flex gap-6 mb-6 text-gray-700">
+        <Link
+          className="hover:text-blue-600 flex items-center gap-2"
+          href={"/"}
+        >
+          <FaHome /> Home
         </Link>
-        <Link className="text-blue-600 hover:underline" href={"/transactions"}>
-          transactions
+        <Link
+          className="hover:text-blue-600 flex items-center gap-2"
+          href={"/transactions"}
+        >
+          <FaListUl /> Transactions
         </Link>
-        <Link className="text-blue-600 hover:underline" href={"/groups"}>
-          Groups
+        <Link
+          className="hover:text-blue-600 flex items-center gap-2"
+          href={"/groups"}
+        >
+          <FaUsers /> Groups
         </Link>
       </div>
+
+      {/* Toolbar */}
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Budgets</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+            <FaWallet className="text-blue-600" /> My Budgets
+          </h1>
+          {currentUser && (
+            <p className="text-sm text-gray-600 mt-1">
+              Managing budgets for:{" "}
+              <span className="font-medium">{currentUser.name}</span>
+            </p>
+          )}
+        </div>
         <button
-          onClick={() => setShowForm(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+          onClick={handleNewBudget}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow flex items-center gap-2"
         >
-          ➕ Add Budget
+          <FaPlus /> Add Budget
         </button>
       </div>
 
+      {/* Budget Form */}
       {showForm && (
         <form
           onSubmit={handleSubmit}
-          className="bg-white shadow-md rounded-lg p-6 mb-6 space-y-4"
+          className="bg-white shadow-lg rounded-xl p-6 mb-8 space-y-4 animate-fadeIn"
         >
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {/* User Dropdown */}
-            <select
-              name="user_id"
-              value={formData.user_id}
-              onChange={handleChange}
-              required
-              className="border rounded-lg px-3 py-2 w-full"
-            >
-              <option value="">Select User</option>
-              {users.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name}
-                </option>
-              ))}
-            </select>
+          <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-gray-50 border rounded-lg px-3 py-2 flex items-center gap-2">
+              <FaUsers className="text-gray-500" />
+              <span className="text-sm text-gray-600">
+                {currentUser?.name || "Not logged in"}
+              </span>
+            </div>
 
-            {/* Category Dropdown */}
             <select
               name="category_id"
               value={formData.category_id}
@@ -177,23 +215,32 @@ export default function BudgetsPage() {
               ))}
             </select>
 
-            <input
-              type="month"
-              name="period_month"
-              value={formData.period_month}
-              onChange={handleChange}
-              required
-              className="border rounded-lg px-3 py-2 w-full"
-            />
-            <input
-              type="number"
-              name="limit_amount"
-              placeholder="Limit Amount"
-              value={formData.limit_amount}
-              onChange={handleChange}
-              required
-              className="border rounded-lg px-3 py-2 w-full"
-            />
+            <div className="relative">
+              <FaCalendarAlt className="absolute left-3 top-3 text-gray-400" />
+              <input
+                type="month"
+                name="period_month"
+                value={formData.period_month}
+                onChange={handleChange}
+                required
+                className="border rounded-lg px-3 py-2 w-full pl-10"
+              />
+            </div>
+
+            <div className="relative">
+              <FaMoneyBillWave className="absolute left-3 top-3 text-gray-400" />
+              <input
+                type="number"
+                step="0.01"
+                name="limit_amount"
+                placeholder="Limit Amount"
+                value={formData.limit_amount}
+                onChange={handleChange}
+                required
+                className="border rounded-lg px-3 py-2 w-full pl-10"
+              />
+            </div>
+
             <select
               name="carryover_policy"
               value={formData.carryover_policy}
@@ -206,85 +253,87 @@ export default function BudgetsPage() {
             </select>
           </div>
 
-          <div className="flex space-x-3">
+          <div className="flex gap-3">
             <button
               type="submit"
-              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
             >
-              {formData.id ? "Update" : "Save"}
+              <FaCheck /> {formData.id ? "Update" : "Save"}
             </button>
             <button
               type="button"
               onClick={() => setShowForm(false)}
-              className="bg-gray-400 text-white px-4 py-2 rounded-lg hover:bg-gray-500"
+              className="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded-lg flex items-center gap-2"
             >
-              Cancel
+              <FaTimes /> Cancel
             </button>
           </div>
         </form>
       )}
 
+      {/* Budgets List */}
       {loading ? (
         <p className="text-gray-500">Loading...</p>
       ) : budgets.length === 0 ? (
-        <p className="text-gray-500">No budgets found.</p>
+        <div className="text-center py-12">
+          <p className="text-gray-500 text-lg mb-4">No budgets found.</p>
+          <button
+            onClick={handleNewBudget}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg flex items-center gap-2"
+          >
+            <FaPlus /> Create Your First Budget
+          </button>
+        </div>
       ) : (
-        <div className="overflow-x-auto bg-white shadow-md rounded-lg">
-          <table className="w-full text-sm text-left border-collapse">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="px-4 py-3 border">#</th>
-                {/* <th className="px-4 py-3 border">User</th> */}
-                <th className="px-4 py-3 border">Category</th>
-                <th className="px-4 py-3 border">Period</th>
-                <th className="px-4 py-3 border">Limit</th>
-                <th className="px-4 py-3 border">Policy</th>
-                <th className="px-4 py-3 border">Progress</th>
-                <th className="px-4 py-3 border">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {budgets.map((b, i) => (
-                <tr key={b.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 border">{i + 1}</td>
-                  {/* <td className="px-4 py-3 border">{b.user_name}</td> */}
-                  <td className="px-4 py-3 border">{b.category_name}</td>
-                  <td className="px-4 py-3 border">
-                    {new Date(b.period_month).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "long",
-                    })}
-                  </td>
-                  <td className="px-4 py-3 border">{b.limit_amount}</td>
-                  <td className="px-4 py-3 border">{b.carryover_policy}</td>
-                  <td className="px-4 py-3 border">
-                    <BudgetProgress id={b.id} />
-                  </td>
-                  <td className="px-4 py-3 border space-x-2">
-                    <button
-                      onClick={() => handleEdit(b)}
-                      className="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600"
-                    >
-                      ✏️ Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(b.id)}
-                      className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
-                    >
-                      🗑 Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="grid md:grid-cols-2 gap-6">
+          {budgets.map((b) => (
+            <div
+              key={b.id}
+              className="bg-white shadow-md rounded-lg p-6 hover:shadow-lg transition"
+            >
+              <div className="flex justify-between items-center mb-3">
+                <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                  <FaWallet className="text-green-600" /> {b.category_name}
+                </h2>
+                <span className="text-sm text-gray-500">
+                  {new Date(b.period_month).toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "long",
+                  })}
+                </span>
+              </div>
+
+              <BudgetProgress id={b.id} />
+
+              <p className="mt-3 text-sm text-gray-600">
+                Limit: <strong>₹{parseFloat(b.limit_amount).toFixed(2)}</strong>{" "}
+                | Policy:{" "}
+                <span className="capitalize">{b.carryover_policy}</span>
+              </p>
+
+              <div className="mt-4 flex gap-2">
+                <button
+                  onClick={() => handleEdit(b)}
+                  className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded flex items-center gap-1"
+                >
+                  <FaEdit /> Edit
+                </button>
+                <button
+                  onClick={() => handleDelete(b.id)}
+                  className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded flex items-center gap-1"
+                >
+                  <FaTrash /> Delete
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
   );
 }
 
-// Budget progress sub-component
+// Progress bar
 function BudgetProgress({ id }) {
   const [progress, setProgress] = useState(null);
 
@@ -299,17 +348,20 @@ function BudgetProgress({ id }) {
   const percent = ((progress.spent / progress.limit_amount) * 100).toFixed(1);
 
   return (
-    <div className="w-40">
-      <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+    <div>
+      <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
         <div
-          className={`h-2 rounded-full ${
-            percent > 100 ? "bg-red-600" : "bg-green-600"
+          className={`h-3 rounded-full transition-all duration-500 ${
+            percent > 100
+              ? "bg-gradient-to-r from-red-500 to-red-700"
+              : "bg-gradient-to-r from-green-500 to-green-700"
           }`}
           style={{ width: `${Math.min(percent, 100)}%` }}
-        ></div>
+        />
       </div>
-      <p className="text-xs text-gray-600 mt-1">
-        {progress.spent} / {progress.limit_amount}
+      <p className="text-xs text-gray-600 mt-2">
+        Spent: <strong>₹{parseFloat(progress.spent).toFixed(2)}</strong> / ₹
+        {parseFloat(progress.limit_amount).toFixed(2)} ({percent}%)
       </p>
     </div>
   );

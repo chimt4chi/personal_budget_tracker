@@ -4,67 +4,70 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import TransactionCharts from "./components/TransactionCharts";
+import { FaSignOutAlt } from "react-icons/fa";
 
 export default function Dashboard() {
-  const { user, logout, loading } = useAuth();
+  const { user, logout, loading, token } = useAuth();
   const router = useRouter();
-  const { token } = useAuth();
-  // console.log(token);
-
-  // console.log("🔍 Dashboard - user:", user);
-  // console.log("🔍 Dashboard - loading:", loading);
 
   useEffect(() => {
-    // console.log("🔍 Dashboard useEffect - loading:", loading, "user:", user);
-
     if (!loading && !user) {
-      console.log("🔍 Dashboard: Redirecting to login");
       router.push("/auth/login");
     }
   }, [user, loading, router]);
 
   if (loading) {
-    // console.log("🔍 Dashboard: Showing loading state");
     return (
-      <div className="p-6 flex justify-center">
-        <div>Loading...</div>
+      <div className="p-6 flex justify-center items-center min-h-screen text-lg text-gray-600">
+        Loading...
       </div>
     );
   }
 
-  if (!user) {
-    // console.log("🔍 Dashboard: No user, should redirect");
-    return null;
-  }
+  if (!user) return null;
 
-  // console.log("🔍 Dashboard: Rendering dashboard");
   return (
-    <div className="max-w-4xl mx-auto mt-10 font-sans p-4">
-      <div className="flex gap-4 mb-6">
-        <Link className="text-blue-600 hover:underline" href={"/transactions"}>
-          Transactions
-        </Link>
-        <Link className="text-blue-600 hover:underline" href={"/budget"}>
-          Budget
-        </Link>
-        <Link className="text-blue-600 hover:underline" href={"/groups"}>
-          Groups
-        </Link>
-      </div>
-      {/* <h1 className="text-xl font-bold">Welcome, {user.email} 🎉</h1> */}
-      <div className="bg-blue-50 p-3 rounded-lg flex justify-between items-center">
-        <p className="text-sm text-blue-800">
-          Logged in as: <strong>{user.name}</strong> Email:
-          <strong>{user.email}</strong>
-        </p>
+    <div className="max-w-6xl mx-auto mt-8 px-4 font-sans">
+      {/* Top Navigation */}
+      <nav className="flex justify-between items-center bg-white shadow-md px-6 py-4 rounded-xl mb-8">
+        <div className="flex gap-6">
+          <Link
+            className="text-gray-700 hover:text-blue-600 font-medium transition"
+            href="/transactions"
+          >
+            Transactions
+          </Link>
+          <Link
+            className="text-gray-700 hover:text-blue-600 font-medium transition"
+            href="/budget"
+          >
+            Budget
+          </Link>
+          <Link
+            className="text-gray-700 hover:text-blue-600 font-medium transition"
+            href="/groups"
+          >
+            Groups
+          </Link>
+        </div>
         <button
           onClick={logout}
-          className="mt-4 bg-red-500 text-white py-2 px-4 rounded cursor-pointer"
+          className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg shadow transition"
         >
-          Logout
+          <FaSignOutAlt /> Logout
         </button>
+      </nav>
+
+      {/* User Info Card */}
+      <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-5 rounded-2xl shadow-lg text-white mb-8">
+        <p className="text-sm">Welcome back 👋</p>
+        <h1 className="text-xl font-bold">
+          {user.name}{" "}
+          <span className="text-sm font-normal">({user.email})</span>
+        </h1>
       </div>
 
+      {/* Charts Section */}
       <TransactionCharts token={token} />
     </div>
   );

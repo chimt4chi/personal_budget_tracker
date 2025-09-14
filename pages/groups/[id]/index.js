@@ -36,13 +36,11 @@ export default function GroupDetailPage() {
   const [newMemberEmail, setNewMemberEmail] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
-
   const [newExpense, setNewExpense] = useState({
     description: "",
     amount: "",
     paid_by: "",
   });
-
   const [newSettlement, setNewSettlement] = useState({ to: "", amount: "" });
 
   const fetchData = async () => {
@@ -60,7 +58,6 @@ export default function GroupDetailPage() {
       setBalances(b);
       setSettlements(s);
 
-      // Get logged-in user info
       const me = await authFetch("/api/me").then((r) => r.json());
       setCurrentUser(me);
     } catch (err) {
@@ -73,10 +70,7 @@ export default function GroupDetailPage() {
   }, [id]);
 
   const handleAddMember = async () => {
-    if (!selectedUser) {
-      alert("Please select a user from suggestions");
-      return;
-    }
+    if (!selectedUser) return alert("Please select a user from suggestions");
     try {
       await authFetch(`/api/groups/${id}/members`, {
         method: "POST",
@@ -105,8 +99,7 @@ export default function GroupDetailPage() {
 
   const handleAddExpense = async () => {
     if (!newExpense.description || !newExpense.amount || !newExpense.paid_by) {
-      alert("Please fill all fields");
-      return;
+      return alert("Please fill all fields");
     }
     try {
       await authFetch(`/api/groups/${id}/expenses`, {
@@ -148,19 +141,18 @@ export default function GroupDetailPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto mt-10 font-sans p-4">
+    <div className="max-w-5xl mx-auto mt-10 font-sans p-6">
+      {/* Back Nav */}
       <div className="flex gap-4 mb-6">
-        <Link href="/groups">
-          <span className="text-blue-600 hover:underline">
-            ← Back to Groups
-          </span>
+        <Link href="/groups" className="text-blue-600 hover:underline">
+          ← Back to Groups
         </Link>
       </div>
 
-      <h1 className="text-2xl font-bold mb-6 text-gray-800">Group Details</h1>
+      <h1 className="text-3xl font-bold mb-6 text-gray-800">Group Details</h1>
 
       {/* Tabs */}
-      <div className="flex gap-4 mb-6 border-b">
+      <div className="flex gap-6 mb-6 border-b">
         {[
           { key: "members", label: "Members", icon: <FaUsers /> },
           { key: "expenses", label: "Expenses", icon: <FaMoneyBill /> },
@@ -169,10 +161,10 @@ export default function GroupDetailPage() {
         ].map((tab) => (
           <button
             key={tab.key}
-            className={`px-4 py-2 flex items-center gap-2 ${
+            className={`px-4 py-2 flex items-center gap-2 font-medium transition ${
               activeTab === tab.key
                 ? "border-b-2 border-blue-600 text-blue-600"
-                : "text-gray-600"
+                : "text-gray-600 hover:text-blue-600"
             }`}
             onClick={() => setActiveTab(tab.key)}
           >
@@ -181,23 +173,23 @@ export default function GroupDetailPage() {
         ))}
       </div>
 
-      {/* Members Tab */}
+      {/* Members */}
       {activeTab === "members" && (
-        <div>
-          <h2 className="text-lg font-semibold mb-2">Group Members</h2>
-          <ul className="space-y-2 mb-4">
+        <div className="bg-white shadow rounded-lg p-6">
+          <h2 className="text-lg font-semibold mb-4">Group Members</h2>
+          <ul className="space-y-3 mb-6">
             {members.map((m) => (
               <li
                 key={m.id}
-                className="p-2 border rounded bg-gray-50 flex justify-between items-center"
+                className="flex justify-between items-center p-3 border rounded-lg bg-gray-50"
               >
                 <span>
-                  {m.name} ({m.email})
+                  {m.name} <span className="text-gray-500">({m.email})</span>
                 </span>
                 {m.role !== "admin" && (
                   <button
                     onClick={() => handleRemoveMember(m.id)}
-                    className="bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs"
+                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
                   >
                     Remove
                   </button>
@@ -218,18 +210,13 @@ export default function GroupDetailPage() {
                 if (val.length >= 2) {
                   try {
                     const res = await authFetch(`/api/users/search?q=${val}`);
-                    if (res.ok) {
-                      const data = await res.json();
-                      setSuggestions(data);
-                    }
+                    if (res.ok) setSuggestions(await res.json());
                   } catch (err) {
                     console.error("Error fetching suggestions:", err);
                   }
-                } else {
-                  setSuggestions([]);
-                }
+                } else setSuggestions([]);
               }}
-              className="px-2 py-1 border rounded w-full"
+              className="px-3 py-2 border rounded w-full focus:ring-2 focus:ring-blue-500"
             />
             {suggestions.length > 0 && (
               <ul className="absolute z-10 bg-white border w-full rounded mt-1 shadow">
@@ -251,18 +238,18 @@ export default function GroupDetailPage() {
           </div>
           <button
             onClick={handleAddMember}
-            className="mt-2 bg-blue-600 text-white px-3 py-1 rounded"
+            className="mt-3 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
           >
-            Add
+            ➕ Add Member
           </button>
         </div>
       )}
 
-      {/* Expenses Tab */}
+      {/* Expenses */}
       {activeTab === "expenses" && (
-        <div>
-          <h2 className="text-lg font-semibold mb-2">Expenses</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 mb-4">
+        <div className="bg-white shadow rounded-lg p-6">
+          <h2 className="text-lg font-semibold mb-4">Expenses</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-6">
             <input
               type="text"
               placeholder="Description"
@@ -270,7 +257,7 @@ export default function GroupDetailPage() {
               onChange={(e) =>
                 setNewExpense({ ...newExpense, description: e.target.value })
               }
-              className="px-2 py-1 border rounded"
+              className="px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
             />
             <input
               type="number"
@@ -279,14 +266,14 @@ export default function GroupDetailPage() {
               onChange={(e) =>
                 setNewExpense({ ...newExpense, amount: e.target.value })
               }
-              className="px-2 py-1 border rounded"
+              className="px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
             />
             <select
               value={newExpense.paid_by}
               onChange={(e) =>
                 setNewExpense({ ...newExpense, paid_by: e.target.value })
               }
-              className="px-2 py-1 border rounded"
+              className="px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Who Paid?</option>
               {members.map((m) => (
@@ -297,52 +284,70 @@ export default function GroupDetailPage() {
             </select>
             <button
               onClick={handleAddExpense}
-              className="bg-green-600 text-white px-3 rounded"
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg"
             >
-              Add
+              ➕ Add Expense
             </button>
           </div>
-          <ul className="space-y-2">
+          <ul className="space-y-3">
             {expenses.map((ex) => (
-              <li key={ex.id} className="p-2 border rounded bg-gray-50">
-                {ex.description} — ₹{ex.amount} (paid by {ex.paid_by_name})
+              <li
+                key={ex.id}
+                className="p-3 border rounded-lg bg-gray-50 flex justify-between"
+              >
+                <span>
+                  {ex.description} —{" "}
+                  <span className="font-semibold">₹{ex.amount}</span>
+                </span>
+                <span className="text-gray-600">Paid by {ex.paid_by_name}</span>
               </li>
             ))}
           </ul>
         </div>
       )}
 
-      {/* Balances Tab */}
+      {/* Balances */}
       {activeTab === "balances" && (
-        <div>
-          <h2 className="text-lg font-semibold mb-2">Balances</h2>
-          <ul className="space-y-2 mb-4">
+        <div className="bg-white shadow rounded-lg p-6">
+          <h2 className="text-lg font-semibold mb-4">Balances</h2>
+          <ul className="space-y-3 mb-6">
             {balances.balances?.map((b) => {
               const member = members.find((m) => m.id === b.user_id);
               return (
-                <li key={b.user_id} className="p-2 border rounded bg-gray-50">
-                  {member?.name || "Unknown"}{" "}
-                  {b.balance > 0
-                    ? `should receive ₹${b.balance}`
-                    : b.balance < 0
-                    ? `owes ₹${Math.abs(b.balance)}`
-                    : "is settled"}
+                <li
+                  key={b.user_id}
+                  className="p-3 border rounded-lg bg-gray-50 flex justify-between"
+                >
+                  <span>{member?.name || "Unknown"}</span>
+                  <span className="font-medium">
+                    {b.balance > 0
+                      ? `should receive ₹${b.balance}`
+                      : b.balance < 0
+                      ? `owes ₹${Math.abs(b.balance)}`
+                      : "is settled"}
+                  </span>
                 </li>
               );
             })}
           </ul>
 
-          <h2 className="text-lg font-semibold mb-2">Suggested Settlements</h2>
-          <ul className="space-y-2">
+          <h2 className="text-lg font-semibold mb-4">Suggested Settlements</h2>
+          <ul className="space-y-3">
             {balances.suggestions?.length === 0 ? (
-              <p className="text-gray-600">All settled 🎉</p>
+              <p className="text-gray-500">All settled 🎉</p>
             ) : (
               balances.suggestions.map((s, i) => {
                 const from = members.find((m) => m.id === s.from_user_id);
                 const to = members.find((m) => m.id === s.to_user_id);
                 return (
-                  <li key={i} className="p-2 border rounded bg-green-50">
-                    {from?.name} should pay {to?.name} ₹{s.amount}
+                  <li
+                    key={i}
+                    className="p-3 border rounded-lg bg-green-50 flex justify-between"
+                  >
+                    <span>
+                      {from?.name} ➝ {to?.name}
+                    </span>
+                    <span className="font-semibold">₹{s.amount}</span>
                   </li>
                 );
               })
@@ -351,28 +356,27 @@ export default function GroupDetailPage() {
         </div>
       )}
 
-      {/* Settlements Tab */}
+      {/* Settlements */}
       {activeTab === "settlements" && (
-        <div>
-          <h2 className="text-lg font-semibold mb-2">Record Settlement</h2>
-          <div className="flex gap-2 mb-4">
+        <div className="bg-white shadow rounded-lg p-6">
+          <h2 className="text-lg font-semibold mb-4">Record Settlement</h2>
+          <div className="flex gap-3 mb-6">
             <select
               value={newSettlement.to}
               onChange={(e) =>
                 setNewSettlement({ ...newSettlement, to: e.target.value })
               }
-              className="px-2 py-1 border rounded"
+              className="px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Select member</option>
               {members
-                .filter((m) => m.id !== currentUser?.id) // ✅ exclude current user
+                .filter((m) => m.id !== currentUser?.id)
                 .map((m) => (
                   <option key={m.id} value={m.id}>
                     {m.name}
                   </option>
                 ))}
             </select>
-
             <input
               type="number"
               placeholder="Amount"
@@ -380,20 +384,27 @@ export default function GroupDetailPage() {
               onChange={(e) =>
                 setNewSettlement({ ...newSettlement, amount: e.target.value })
               }
-              className="px-2 py-1 border rounded"
+              className="px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
             />
             <button
               onClick={handleAddSettlement}
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-1 rounded"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
             >
               Settle
             </button>
           </div>
-          <h2 className="text-lg font-semibold mb-2">Past Settlements</h2>
-          <ul className="space-y-2">
+
+          <h2 className="text-lg font-semibold mb-4">Past Settlements</h2>
+          <ul className="space-y-3">
             {settlements.map((s) => (
-              <li key={s.id} className="p-2 border rounded bg-gray-50">
-                {s.from_user} paid {s.to_user} ₹{s.amount}
+              <li
+                key={s.id}
+                className="p-3 border rounded-lg bg-gray-50 flex justify-between"
+              >
+                <span>
+                  {s.from_user} ➝ {s.to_user}
+                </span>
+                <span className="font-semibold">₹{s.amount}</span>
               </li>
             ))}
           </ul>

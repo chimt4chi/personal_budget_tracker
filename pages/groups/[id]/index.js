@@ -7,6 +7,7 @@ import {
   FaMoneyBill,
   FaUsers,
   FaBalanceScale,
+  FaHandshake,
 } from "react-icons/fa";
 
 function authFetch(url, options = {}) {
@@ -143,8 +144,11 @@ export default function GroupDetailPage() {
   return (
     <div className="max-w-5xl mx-auto mt-10 font-sans p-6">
       {/* Back Nav */}
-      <div className="flex gap-4 mb-6">
-        <Link href="/groups" className="text-blue-600 hover:underline">
+      <div className="mb-6">
+        <Link
+          href="/groups"
+          className="flex items-center gap-2 text-blue-600 hover:underline"
+        >
           ← Back to Groups
         </Link>
       </div>
@@ -157,7 +161,7 @@ export default function GroupDetailPage() {
           { key: "members", label: "Members", icon: <FaUsers /> },
           { key: "expenses", label: "Expenses", icon: <FaMoneyBill /> },
           { key: "balances", label: "Balances", icon: <FaBalanceScale /> },
-          { key: "settlements", label: "Settlements", icon: "🤝" },
+          { key: "settlements", label: "Settlements", icon: <FaHandshake /> },
         ].map((tab) => (
           <button
             key={tab.key}
@@ -175,8 +179,10 @@ export default function GroupDetailPage() {
 
       {/* Members */}
       {activeTab === "members" && (
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-lg font-semibold mb-4">Group Members</h2>
+        <div className="bg-white shadow rounded-xl p-6">
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <FaUsers className="text-blue-600" /> Group Members
+          </h2>
           <ul className="space-y-3 mb-6">
             {members.map((m) => (
               <li
@@ -189,9 +195,9 @@ export default function GroupDetailPage() {
                 {m.role !== "admin" && (
                   <button
                     onClick={() => handleRemoveMember(m.id)}
-                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm"
+                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm flex items-center gap-1"
                   >
-                    Remove
+                    <FaTrash /> Remove
                   </button>
                 )}
               </li>
@@ -238,17 +244,19 @@ export default function GroupDetailPage() {
           </div>
           <button
             onClick={handleAddMember}
-            className="mt-3 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
+            className="mt-3 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
           >
-            ➕ Add Member
+            <FaPlus /> Add Member
           </button>
         </div>
       )}
 
       {/* Expenses */}
       {activeTab === "expenses" && (
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-lg font-semibold mb-4">Expenses</h2>
+        <div className="bg-white shadow rounded-xl p-6">
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <FaMoneyBill className="text-green-600" /> Expenses
+          </h2>
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-6">
             <input
               type="text"
@@ -284,9 +292,9 @@ export default function GroupDetailPage() {
             </select>
             <button
               onClick={handleAddExpense}
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg"
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
             >
-              ➕ Add Expense
+              <FaPlus /> Add Expense
             </button>
           </div>
           <ul className="space-y-3">
@@ -308,8 +316,10 @@ export default function GroupDetailPage() {
 
       {/* Balances */}
       {activeTab === "balances" && (
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-lg font-semibold mb-4">Balances</h2>
+        <div className="bg-white shadow rounded-xl p-6">
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <FaBalanceScale className="text-purple-600" /> Balances
+          </h2>
           <ul className="space-y-3 mb-6">
             {balances.balances?.map((b) => {
               const member = members.find((m) => m.id === b.user_id);
@@ -358,8 +368,10 @@ export default function GroupDetailPage() {
 
       {/* Settlements */}
       {activeTab === "settlements" && (
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-lg font-semibold mb-4">Record Settlement</h2>
+        <div className="bg-white shadow rounded-xl p-6">
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <FaHandshake className="text-orange-600" /> Record Settlement
+          </h2>
           <div className="flex gap-3 mb-6">
             <select
               value={newSettlement.to}

@@ -4,7 +4,13 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import TransactionCharts from "./components/TransactionCharts";
-import { FaSignOutAlt } from "react-icons/fa";
+import {
+  FaSignOutAlt,
+  FaWallet,
+  FaListUl,
+  FaUsers,
+  FaChartPie,
+} from "react-icons/fa";
 
 export default function Dashboard() {
   const { user, logout, loading, token } = useAuth();
@@ -32,22 +38,22 @@ export default function Dashboard() {
       <nav className="flex justify-between items-center bg-white shadow-md px-6 py-4 rounded-xl mb-8">
         <div className="flex gap-6">
           <Link
-            className="text-gray-700 hover:text-blue-600 font-medium transition"
+            className="text-gray-700 hover:text-blue-600 font-medium flex items-center gap-2 transition"
             href="/transactions"
           >
-            Transactions
+            <FaListUl /> Transactions
           </Link>
           <Link
-            className="text-gray-700 hover:text-blue-600 font-medium transition"
+            className="text-gray-700 hover:text-blue-600 font-medium flex items-center gap-2 transition"
             href="/budget"
           >
-            Budget
+            <FaWallet /> Budget
           </Link>
           <Link
-            className="text-gray-700 hover:text-blue-600 font-medium transition"
+            className="text-gray-700 hover:text-blue-600 font-medium flex items-center gap-2 transition"
             href="/groups"
           >
-            Groups
+            <FaUsers /> Groups
           </Link>
         </div>
         <button
@@ -59,12 +65,15 @@ export default function Dashboard() {
       </nav>
 
       {/* User Info Card */}
-      <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-5 rounded-2xl shadow-lg text-white mb-8">
-        <p className="text-sm">Welcome back 👋</p>
-        <h1 className="text-xl font-bold">
-          {user.name}{" "}
-          <span className="text-sm font-normal">({user.email})</span>
-        </h1>
+      <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-6 rounded-2xl shadow-lg text-white mb-8 flex items-center gap-4">
+        <FaChartPie className="text-4xl opacity-90" />
+        <div>
+          <p className="text-sm">Welcome back 👋</p>
+          <h1 className="text-xl font-bold">
+            {user.name}{" "}
+            <span className="text-sm font-normal">({user.email})</span>
+          </h1>
+        </div>
       </div>
 
       {/* Charts Section */}

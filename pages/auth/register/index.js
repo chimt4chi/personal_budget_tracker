@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useAuth } from "../../../context/AuthContext";
+import { useRouter } from "next/router";
 
 export default function RegisterPage() {
   const { login } = useAuth();
+  const router = useRouter();
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -107,6 +109,15 @@ export default function RegisterPage() {
           className="bg-blue-600 text-white w-full py-2 rounded hover:bg-blue-700"
         >
           Register
+        </button>
+
+        {/* Extra button for login */}
+        <button
+          type="button"
+          onClick={() => router.push("/auth/login")}
+          className="mt-2 w-full py-2 rounded border border-gray-300 text-gray-700 hover:bg-gray-100"
+        >
+          Already have an account? Login
         </button>
       </form>
     </div>

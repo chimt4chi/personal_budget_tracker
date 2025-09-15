@@ -68,10 +68,10 @@ pnpm install
 
 ### Run Locally
 
-```npm run dev```
-# or
+- ```npm run dev```
+- or
 ```yarn dev```
-# or
+- or
 ```pnpm dev```
 
 ### Now Open ``` http://localhost:3000 ```
@@ -96,29 +96,53 @@ AIVEN_DB_PORT=
 AIVEN_DB_CA_PATH=
 ```
 
+# User Manual
+## Features
+- Add transactions specifying amount, type (income/expense), category, and date.
+
+- Edit or delete existing transactions.
+
+- Categorize transactions (e.g., Food, Transport, Utilities).
+
+- View dashboard summaries and spending trends over time.
+
+- Responsive design for use on mobile and desktop.
+
+## How to Use
+- Open the app.
+
+- Navigate to the transaction input form.
+
+- Enter relevant details such as amount, category, date, and whether it is income or expense.
+
+- Save the transaction.
+
+- View the dashboard for a summary of your budget and spending patterns.
+
+- Use filters or category views to analyze expenses.
+
 ## Deployment
 This project is optimized for Vercel.
 To deploy:
 
-#### Push code to GitHub
+- Push code to GitHub
+- Connect repo to Vercel
 
-#### Connect repo to Vercel
+- Set build command: ```npm run build```
 
-#### Set build command: npm run build
-
-#### Start command: npm start
+- Start command: npm start
 
 # 🤝 Contributing
 Contributions are welcome!
-## Fork the repo
+- Fork the repo
 
-## Create a feature branch: ```git checkout -b feat/your-feature```
+- Create a feature branch: ```git checkout -b feat/your-feature```
 
-## Commit changes: ```git commit -m "Add new feature"```
+- Commit changes: ```git commit -m "Add new feature"```
 
-## Push branch: ```git push origin feat/your-feature```
+- Push branch: ```git push origin feat/your-feature```
 
-## Open a Pull Request 🚀
+- Open a Pull Request 🚀
 
 # 👤 Author
 - Github: @[chimt4chi](https://github.com/chimt4chi)

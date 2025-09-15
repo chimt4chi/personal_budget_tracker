@@ -34,8 +34,8 @@ export default function UserGuide() {
           <p className="text-gray-600">
             Welcome to the Personal Budget Tracker! This app helps you manage
             your income, expenses, and stay on top of your financial goals.
-            Whether you're budgeting monthly or tracking daily expenses, we've
-            got you covered.
+            Whether you&apos;re budgeting monthly or tracking daily expenses,
+            we&apos;ve got you covered.
           </p>
         </section>
 

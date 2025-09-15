@@ -1,5 +1,7 @@
 "use client";
 import { FaSpinner } from "react-icons/fa";
+import { FaChevronDown, FaFileExport, FaFileImport } from "react-icons/fa";
+
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
@@ -39,6 +41,7 @@ export default function Home() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const [loading, setLoading] = useState(true);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   // ✅ api helper
   const apiCall = async (url, options = {}) => {
@@ -241,15 +244,8 @@ export default function Home() {
     description,
     paid_by
   ) => {
-    console.log(amount, description, paid_by);
-    // if (!amount || !description || !paid_by) {
-    //   alert("Missing group expense fields");
-    //   return;
-    // }
-
     try {
-      const group = groups.find((g) => g.id === parseInt(groupId));
-      const groupMembers = group?.members || [];
+      const groupMembers = await fetchGroupMembers(groupId);
 
       if (!groupMembers.length) {
         console.warn("Group has no members");
@@ -296,6 +292,12 @@ export default function Home() {
       // 👇 If this is a group expense, also create a group split
       if (form.group_id) {
         const members = await fetchGroupMembers(form.group_id);
+        await handleAddExpenseForGroup(
+          form.group_id,
+          form.amount,
+          form.description || "Group Expense",
+          user_id
+        );
 
         if (!members.length) {
           alert("Group has no members");
@@ -478,21 +480,23 @@ export default function Home() {
       </div>
 
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row justify-between gap-4 items-center mb-6">
+      <div className="flex flex-col sm:flex-row justify-between gap-4 items-center mb-8">
         <button
           onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg shadow transition"
+          className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-2.5 rounded-xl shadow-lg transition-all duration-300"
         >
           {showForm ? <FaTimes /> : <FaPlus />}
-          {showForm ? "Close" : "New Transaction"}
+          <span className="font-medium">
+            {showForm ? "Close" : "New Transaction"}
+          </span>
         </button>
 
         {/* Search */}
-        <div className="flex gap-2 w-full sm:w-auto">
+        <div className="flex gap-3 w-full sm:w-auto">
           <select
             value={searchColumn}
             onChange={(e) => setSearchColumn(e.target.value)}
-            className="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            className="border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm"
           >
             <option value="all">All Fields</option>
             <option value="amount">Amount</option>
@@ -511,7 +515,7 @@ export default function Home() {
               }...`}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 border rounded-lg w-full focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              className="pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl w-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm"
             />
           </div>
         </div>
@@ -521,9 +525,9 @@ export default function Home() {
       {showForm && (
         <form
           onSubmit={handleSubmit}
-          className="bg-white shadow-lg rounded-xl p-6 mb-8 space-y-4 animate-fadeIn border"
+          className="bg-white shadow-xl rounded-2xl p-6 mb-8 space-y-5 animate-fadeIn border border-gray-200"
         >
-          <div className="grid sm:grid-cols-2 gap-4">
+          <div className="grid sm:grid-cols-2 gap-5">
             <input
               name="amount"
               type="number"
@@ -531,7 +535,7 @@ export default function Home() {
               placeholder="Amount"
               value={form.amount}
               onChange={handleChange}
-              className="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
               required
             />
             <input
@@ -539,13 +543,13 @@ export default function Home() {
               placeholder="Description"
               value={form.description}
               onChange={handleChange}
-              className="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
             />
             <select
               name="category_id"
               value={form.category_id}
               onChange={handleChange}
-              className="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
             >
               <option value="">Select Category</option>
               {categories.map((c) => (
@@ -558,7 +562,7 @@ export default function Home() {
               name="txn_type"
               value={form.txn_type}
               onChange={handleChange}
-              className="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
             >
               <option value="expense">Expense</option>
               <option value="income">Income</option>
@@ -568,14 +572,14 @@ export default function Home() {
               type="date"
               value={form.txn_date}
               onChange={handleChange}
-              className="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
               required
             />
             <select
               name="group_id"
               value={form.group_id}
               onChange={handleChange}
-              className="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="border border-gray-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
             >
               <option value="">No Group</option>
               {groups.map((g) => (
@@ -587,37 +591,75 @@ export default function Home() {
           </div>
           <button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg shadow transition"
+            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-3 rounded-xl shadow-lg font-semibold transition-all duration-300"
           >
-            Save
+            Save Transaction
           </button>
         </form>
       )}
 
-      {/* Export / Import */}
-      <div className="flex flex-wrap gap-2 mt-4">
-        <button
-          onClick={exportToCSV}
-          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg shadow transition"
-        >
-          Export CSV
-        </button>
-        <button
-          onClick={exportToJSON}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow transition"
-        >
-          Export JSON
-        </button>
+      {/* Export / Import Dropdown */}
+      <div className="flex justify-end mt-6">
+        <div className="relative inline-block text-left">
+          <button
+            onClick={() => setDropdownOpen((prev) => !prev)}
+            className="flex items-center gap-2 bg-gradient-to-r from-gray-700 to-gray-800 hover:from-gray-800 hover:to-gray-900 text-white px-5 py-2.5 rounded-xl shadow-lg transition-all duration-300"
+          >
+            <FaFileExport className="text-sm" />
+            <span className="font-medium">Export / Import</span>
+            <FaChevronDown
+              className={`ml-1 transform transition-transform ${
+                dropdownOpen ? "rotate-180" : "rotate-0"
+              }`}
+            />
+          </button>
 
-        <label className="cursor-pointer bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg shadow transition">
-          Import
-          <input
-            type="file"
-            accept=".csv,.json"
-            onChange={importTransactions}
-            className="hidden"
-          />
-        </label>
+          {dropdownOpen && (
+            <div className="absolute right-0 mt-2 w-52 bg-white border border-gray-200 rounded-xl shadow-lg z-20 animate-fadeIn">
+              <ul className="py-2 text-sm text-gray-700">
+                <li>
+                  <button
+                    onClick={() => {
+                      exportToCSV();
+                      setDropdownOpen(false);
+                    }}
+                    className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 transition"
+                  >
+                    <FaFileExport className="text-green-600" />
+                    Export CSV
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => {
+                      exportToJSON();
+                      setDropdownOpen(false);
+                    }}
+                    className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 transition"
+                  >
+                    <FaFileExport className="text-blue-600" />
+                    Export JSON
+                  </button>
+                </li>
+                <li>
+                  <label className="w-full flex items-center gap-2 px-4 py-2 cursor-pointer hover:bg-gray-100 transition">
+                    <FaFileImport className="text-gray-600" />
+                    Import File
+                    <input
+                      type="file"
+                      accept=".csv,.json"
+                      onChange={(e) => {
+                        importTransactions(e);
+                        setDropdownOpen(false);
+                      }}
+                      className="hidden"
+                    />
+                  </label>
+                </li>
+              </ul>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Transactions Table */}
@@ -766,6 +808,18 @@ export default function Home() {
                     method: "PUT",
                     body: JSON.stringify(updateData),
                   });
+
+                  if (editForm.group_id) {
+                    // Optionally delete previous group expenses here if API supports
+                    // Otherwise just add new group expense with fresh group members
+                    await handleAddExpenseForGroup(
+                      editForm.group_id,
+                      editForm.amount,
+                      editForm.description || "Group Expense",
+                      currentUser?.id
+                    );
+                  }
+
                   fetchTransactions();
                   setEditingTxn(null);
                 } catch (err) {

@@ -1,14 +1,17 @@
 import Link from "next/link";
-import { FaSpinner } from "react-icons/fa";
-import { useEffect, useState } from "react";
 import {
+  FaSpinner,
   FaTrash,
   FaPlus,
   FaEdit,
   FaCheck,
   FaTimes,
   FaUsers,
+  FaHome,
+  FaWallet,
+  FaListUl,
 } from "react-icons/fa";
+import { useEffect, useState } from "react";
 
 function authFetch(url, options = {}) {
   const token = localStorage.getItem("token");
@@ -35,35 +38,6 @@ export default function MyGroupsPage() {
   const [userId, setUserId] = useState(null);
   const [leavingId, setLeavingId] = useState(null);
 
-  // leave group
-  const handleLeaveGroup = async (groupId) => {
-    if (!window.confirm("Are you sure you want to leave this group?")) return;
-    setLeavingId(groupId);
-    const originalGroups = groups;
-    setGroups(groups.filter((g) => g.id !== groupId));
-    setError(null);
-    try {
-      const res = await authFetch("/api/groups/leave", {
-        method: "DELETE",
-        body: JSON.stringify({ group_id: groupId }),
-      });
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(
-          errorData?.error || "Failed to leave group. Please try again."
-        );
-      }
-      fetchGroups();
-    } catch (err) {
-      console.error("Error leaving group:", err);
-      setError(err.message);
-      setGroups(originalGroups); // rollback
-    } finally {
-      setLeavingId(null);
-    }
-  };
-
-  // current user
   useEffect(() => {
     const userString = localStorage.getItem("user");
     if (userString) {
@@ -76,7 +50,6 @@ export default function MyGroupsPage() {
     }
   }, []);
 
-  // fetch groups
   const fetchGroups = async () => {
     setLoading(true);
     setError(null);
@@ -113,7 +86,23 @@ export default function MyGroupsPage() {
       });
       if (!res.ok) throw new Error("Failed to create group");
       const newGroup = await res.json();
-      setGroups((prev) => [...prev, newGroup]);
+
+      // If owner_name is not returned from API, we set it manually
+      const userString = localStorage.getItem("user");
+      let ownerName = "You";
+      let ownerId = userId;
+      if (userString) {
+        try {
+          const userObj = JSON.parse(userString);
+          ownerName = userObj.name || "You";
+          ownerId = userObj.id;
+        } catch {}
+      }
+
+      setGroups((prev) => [
+        ...prev,
+        { ...newGroup, owner_name: ownerName, owner_id: ownerId },
+      ]);
       setNewGroupName("");
       setShowForm(false);
     } catch (error) {
@@ -124,7 +113,6 @@ export default function MyGroupsPage() {
     }
   };
 
-  // delete group
   const handleDelete = async (groupId) => {
     if (!window.confirm("Are you sure you want to delete this group?")) return;
     setDeletingId(groupId);
@@ -135,27 +123,17 @@ export default function MyGroupsPage() {
         method: "DELETE",
         body: JSON.stringify({ group_id: groupId }),
       });
-      if (!res.ok) {
-        let message = "Failed to delete group. Please try again.";
-        try {
-          const errorData = await res.json();
-          if (errorData?.error) message = errorData.error;
-        } catch {}
-        setGroups(original);
-        setError(message);
-        return;
-      }
+      if (!res.ok) throw new Error("Failed to delete group");
       fetchGroups();
     } catch (err) {
       console.error("Error deleting group:", err);
       setGroups(original);
-      setError("Unexpected error deleting group. Please try again.");
+      setError("Error deleting group. Please try again.");
     } finally {
       setDeletingId(null);
     }
   };
 
-  // editing helpers
   const startEditing = (group) => {
     setEditingId(group.id);
     setEditedName(group.group_name);
@@ -187,11 +165,33 @@ export default function MyGroupsPage() {
     }
   };
 
+  const handleLeaveGroup = async (groupId) => {
+    if (!window.confirm("Are you sure you want to leave this group?")) return;
+    setLeavingId(groupId);
+    const originalGroups = groups;
+    setGroups(groups.filter((g) => g.id !== groupId));
+    setError(null);
+    try {
+      const res = await authFetch("/api/groups/leave", {
+        method: "DELETE",
+        body: JSON.stringify({ group_id: groupId }),
+      });
+      if (!res.ok) throw new Error("Failed to leave group");
+      fetchGroups();
+    } catch (err) {
+      console.error("Error leaving group:", err);
+      setError("Failed to leave group. Please try again.");
+      setGroups(originalGroups);
+    } finally {
+      setLeavingId(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-72 my-8">
         <FaSpinner className="animate-spin text-4xl text-blue-500" />
-        <span className="ml-4 text-lg text-gray-600">Loading charts...</span>
+        <span className="ml-4 text-lg text-gray-600">Loading groups...</span>
       </div>
     );
   }
@@ -202,14 +202,20 @@ export default function MyGroupsPage() {
 
       {/* Top Nav */}
       <div className="flex gap-4 sm:gap-6 mb-6 sm:mb-8 text-gray-600 text-sm sm:text-base font-medium">
-        <Link href="/" className="hover:text-blue-600">
-          Home
+        <Link href="/" className="hover:text-blue-600 flex items-center gap-1">
+          <FaHome /> Home
         </Link>
-        <Link href="/transactions" className="hover:text-blue-600">
-          Transactions
+        <Link
+          href="/transactions"
+          className="hover:text-blue-600 flex items-center gap-1"
+        >
+          <FaListUl /> Transactions
         </Link>
-        <Link href="/budget" className="hover:text-blue-600">
-          Budget
+        <Link
+          href="/budget"
+          className="hover:text-blue-600 flex items-center gap-1"
+        >
+          <FaWallet /> Budget
         </Link>
       </div>
 
@@ -229,7 +235,7 @@ export default function MyGroupsPage() {
       {/* New Group Form */}
       {showForm && (
         <div className="bg-white p-5 sm:p-6 rounded-xl shadow-md mb-8 border border-gray-100">
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
             <input
               type="text"
               placeholder="Enter group name"
@@ -254,9 +260,7 @@ export default function MyGroupsPage() {
       )}
 
       {/* Groups List */}
-      {loading ? (
-        <p className="text-gray-500 text-sm sm:text-base">Loading...</p>
-      ) : groups.length === 0 ? (
+      {groups.length === 0 ? (
         <div className="text-center py-12 sm:py-16">
           <p className="text-gray-500 text-base sm:text-lg mb-6">
             You are not a member of any groups.
@@ -285,13 +289,13 @@ export default function MyGroupsPage() {
                   />
                   <button
                     onClick={() => handleUpdate(g.id)}
-                    className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg"
+                    className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg flex items-center justify-center"
                   >
                     <FaCheck />
                   </button>
                   <button
                     onClick={cancelEditing}
-                    className="bg-gray-400 hover:bg-gray-500 text-white px-3 py-2 rounded-lg"
+                    className="bg-gray-400 hover:bg-gray-500 text-white px-3 py-2 rounded-lg flex items-center justify-center"
                   >
                     <FaTimes />
                   </button>
@@ -317,7 +321,7 @@ export default function MyGroupsPage() {
                 <div className="flex flex-wrap gap-2 mt-5">
                   <button
                     onClick={() => startEditing(g)}
-                    className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm sm:text-base"
+                    className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm sm:text-base transition"
                   >
                     <FaEdit /> Edit
                   </button>
@@ -325,7 +329,7 @@ export default function MyGroupsPage() {
                     <button
                       onClick={() => handleDelete(g.id)}
                       disabled={deletingId === g.id}
-                      className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm sm:text-base"
+                      className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm sm:text-base transition disabled:opacity-50"
                     >
                       {deletingId === g.id ? (
                         "Deleting..."
@@ -339,7 +343,7 @@ export default function MyGroupsPage() {
                     <button
                       onClick={() => handleLeaveGroup(g.id)}
                       disabled={leavingId === g.id}
-                      className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm sm:text-base"
+                      className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm sm:text-base transition disabled:opacity-50"
                     >
                       {leavingId === g.id ? (
                         "Leaving..."
@@ -352,7 +356,7 @@ export default function MyGroupsPage() {
                   )}
                   <Link
                     href={`/groups/${g.id}`}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm sm:text-base"
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm sm:text-base transition"
                   >
                     View
                   </Link>

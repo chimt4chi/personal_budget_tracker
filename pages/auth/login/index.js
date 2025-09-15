@@ -29,32 +29,36 @@ export default function LoginPage() {
       }
 
       const data = await res.json();
-      login(data.user, data.token); // pass full user object, not just { email }
-
-      router.push("/"); // redirect to home
+      login(data.user, data.token);
+      router.push("/");
     } catch (err) {
       setError("Login failed. Check credentials.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(true);
   };
 
   return (
-    <div className="flex items-center justify-center h-screen bg-gray-100">
+    <div className="flex items-center justify-center h-screen bg-gray-50">
       <title>Login</title>
       <form
         onSubmit={handleSubmit}
-        className="bg-white p-6 rounded-xl shadow-md w-80"
+        className="bg-white p-8 rounded-2xl shadow-lg w-96 border border-gray-100"
       >
-        <h2 className="text-2xl font-bold mb-4 text-center">Login</h2>
+        <h2 className="text-3xl font-semibold mb-6 text-center text-gray-800">
+          Welcome Back
+        </h2>
 
-        {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
+        {error && (
+          <p className="text-red-500 text-sm mb-4 text-center">{error}</p>
+        )}
 
         <input
           type="email"
           placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full mb-3 p-2 border rounded"
+          className="w-full mb-4 p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
         />
 
         <input
@@ -62,12 +66,13 @@ export default function LoginPage() {
           placeholder="Password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full mb-3 p-2 border rounded"
+          className="w-full mb-5 p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
         />
 
         <button
           type="submit"
-          className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
+          disabled={loading}
+          className="w-full flex items-center justify-center bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 transition disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {loading ? (
             <>
@@ -81,9 +86,10 @@ export default function LoginPage() {
         <button
           type="button"
           onClick={() => router.push("/auth/register")}
-          className="mt-2 w-full py-2 rounded border border-gray-300 text-gray-700 hover:bg-gray-100"
+          className="mt-4 w-full py-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition"
         >
-          Don&apos;t have an account? Register
+          Don&apos;t have an account?{" "}
+          <span className="text-blue-500 font-medium">Register</span>
         </button>
       </form>
     </div>

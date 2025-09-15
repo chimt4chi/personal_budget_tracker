@@ -80,8 +80,20 @@ pnpm install
 ## Configuration
 ### Create a .env.local file for environment variables:
 ``` 
-NEXT_PUBLIC_API_URL=your_api_url_here
-NEXT_PUBLIC_ANALYTICS_KEY=your_key_here
+# Local MySQL
+DATABASE_HOST=
+DATABASE_USER=
+DATABASE_PASSWORD=
+DATABASE_NAME=
+DATABASE_PORT=
+
+# Production
+AIVEN_DB_HOST=
+AIVEN_DB_USER=
+AIVEN_DB_PASSWORD=
+AIVEN_DB_NAME=
+AIVEN_DB_PORT=
+AIVEN_DB_CA_PATH=
 ```
 
 ## Deployment

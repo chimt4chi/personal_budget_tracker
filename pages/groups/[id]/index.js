@@ -45,6 +45,49 @@ export default function GroupDetailPage() {
     paid_by: "",
   });
   const [newSettlement, setNewSettlement] = useState({ to: "", amount: "" });
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState({
+    members: 1,
+    expenses: 1,
+    balances: 1,
+    settlements: 1,
+  });
+  const [itemsPerPage] = useState(5); // change as needed
+
+  const EPSILON = 0.01; // 1 paisa tolerance
+
+  const paginate = (items, tab) => {
+    const page = currentPage[tab];
+    const startIndex = (page - 1) * itemsPerPage;
+    return items.slice(startIndex, startIndex + itemsPerPage);
+  };
+
+  const totalPages = (items) => Math.ceil(items.length / itemsPerPage);
+
+  const renderPagination = (items, tab) => {
+    const pages = totalPages(items);
+    if (pages <= 1) return null;
+
+    return (
+      <div className="flex justify-center gap-2 mt-3">
+        {Array.from({ length: pages }, (_, i) => (
+          <button
+            key={i + 1}
+            onClick={() =>
+              setCurrentPage((prev) => ({ ...prev, [tab]: i + 1 }))
+            }
+            className={`px-2 py-1 border rounded ${
+              currentPage[tab] === i + 1
+                ? "bg-blue-600 text-white"
+                : "bg-white text-gray-700"
+            }`}
+          >
+            {i + 1}
+          </button>
+        ))}
+      </div>
+    );
+  };
 
   const fetchData = async () => {
     if (!id) return;
@@ -56,8 +99,11 @@ export default function GroupDetailPage() {
         authFetch(`/api/groups/${id}/balances`).then((r) => r.json()),
         authFetch(`/api/groups/${id}/settlements`).then((r) => r.json()),
       ]);
+
       setMembers(m);
-      setExpenses(e);
+      setExpenses(
+        e.slice().sort((a, b) => new Date(b.txn_date) - new Date(a.txn_date))
+      ); // sort here
       setBalances(b);
       setSettlements(s);
 
@@ -109,6 +155,7 @@ export default function GroupDetailPage() {
     if (!newExpense.description || !newExpense.amount || !newExpense.paid_by) {
       return alert("Please fill all fields");
     }
+
     try {
       await authFetch(`/api/groups/${id}/expenses`, {
         method: "POST",
@@ -116,6 +163,8 @@ export default function GroupDetailPage() {
           paid_by: parseInt(newExpense.paid_by),
           amount: parseFloat(newExpense.amount),
           description: newExpense.description,
+          txn_date:
+            newExpense.txn_date || new Date().toISOString().slice(0, 10), // send date in YYYY-MM-DD
           split_type: "equal",
           split_details: members.map((m) => ({
             user_id: m.id,
@@ -123,7 +172,8 @@ export default function GroupDetailPage() {
           })),
         }),
       });
-      setNewExpense({ description: "", amount: "", paid_by: "" });
+
+      setNewExpense({ description: "", amount: "", paid_by: "", txn_date: "" });
       fetchData();
     } catch (err) {
       console.error("Error adding expense:", err);
@@ -206,7 +256,7 @@ export default function GroupDetailPage() {
             <FaUsers className="text-blue-600" /> Group Members
           </h2>
           <ul className="space-y-3 mb-6">
-            {members.map((m) => (
+            {paginate(members, "members").map((m) => (
               <li
                 key={m.id}
                 className="flex justify-between items-center p-3 border rounded-lg bg-gray-50 text-sm sm:text-base"
@@ -298,6 +348,15 @@ export default function GroupDetailPage() {
               }
               className="px-3 py-2 border rounded w-full text-sm sm:text-base"
             />
+            <input
+              type="date"
+              value={newExpense.txn_date || ""}
+              onChange={(e) =>
+                setNewExpense({ ...newExpense, txn_date: e.target.value })
+              }
+              className="px-3 py-2 border rounded w-full text-sm sm:text-base"
+            />
+
             <select
               value={newExpense.paid_by}
               onChange={(e) =>
@@ -320,19 +379,32 @@ export default function GroupDetailPage() {
             </button>
           </div>
           <ul className="space-y-3">
-            {expenses.map((ex) => (
+            {paginate(
+              expenses
+                .slice()
+                .sort((a, b) => new Date(b.txn_date) - new Date(a.txn_date)),
+              "expenses"
+            ).map((ex) => (
               <li
                 key={ex.id}
                 className="p-3 border rounded-lg bg-gray-50 flex justify-between text-sm sm:text-base"
               >
-                <span>
-                  {ex.description} —{" "}
-                  <span className="font-semibold">₹{ex.amount}</span>
-                </span>
+                <div>
+                  <span className="font-semibold">{ex.description}</span> — ₹
+                  {ex.amount}
+                  <div className="text-gray-500 text-xs sm:text-sm">
+                    {new Date(ex.txn_date).toLocaleDateString("en-IN", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </div>
+                </div>
                 <span className="text-gray-600">Paid by {ex.paid_by_name}</span>
               </li>
             ))}
           </ul>
+          {renderPagination(expenses, "expenses")}
         </div>
       )}
 
@@ -352,10 +424,10 @@ export default function GroupDetailPage() {
                 >
                   <span>{member?.name || "Unknown"}</span>
                   <span className="font-medium">
-                    {b.balance > 0
-                      ? `should receive ₹${b.balance}`
-                      : b.balance < 0
-                      ? `owes ₹${Math.abs(b.balance)}`
+                    {b.balance > EPSILON
+                      ? `should receive ₹${b.balance.toFixed(2)}`
+                      : b.balance < -EPSILON
+                      ? `owes ₹${Math.abs(b.balance).toFixed(2)}`
                       : "is settled"}
                   </span>
                 </li>
@@ -408,12 +480,22 @@ export default function GroupDetailPage() {
             >
               <option value="">Select member</option>
               {members
-                .filter((m) => m.id !== currentUser?.id)
-                .map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name}
-                  </option>
-                ))}
+                .filter((m) => m.id !== currentUser?.id) // exclude current user
+                .map((m) => {
+                  const balance = balances.balances?.find(
+                    (b) => b.user_id === m.id
+                  )?.balance;
+                  return (
+                    <option key={m.id} value={m.id}>
+                      {m.name}{" "}
+                      {balance
+                        ? balance > 0
+                          ? `(should receive ₹${balance.toFixed(2)})`
+                          : `(owes ₹${Math.abs(balance).toFixed(2)})`
+                        : ""}
+                    </option>
+                  );
+                })}
             </select>
             <input
               type="number"
@@ -436,7 +518,7 @@ export default function GroupDetailPage() {
             Past Settlements
           </h2>
           <ul className="space-y-3">
-            {settlements.map((s) => (
+            {paginate(settlements, "settlements").map((s) => (
               <li
                 key={s.id}
                 className="p-3 border rounded-lg bg-gray-50 flex justify-between text-sm sm:text-base"
@@ -448,6 +530,7 @@ export default function GroupDetailPage() {
               </li>
             ))}
           </ul>
+          {renderPagination(settlements, "settlements")}
         </div>
       )}
     </div>

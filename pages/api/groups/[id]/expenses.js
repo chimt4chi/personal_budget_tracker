@@ -15,12 +15,13 @@ async function handler(req, res) {
         description,
         split_type,
         split_details,
+        txn_date,
       } = req.body;
 
       const [result] = await pool.query(
         `INSERT INTO group_expenses 
        (group_id, created_by, paid_by, category_id, amount, description, split_type, txn_date) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, CURDATE())`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           group_id,
           userId,
@@ -29,6 +30,7 @@ async function handler(req, res) {
           amount,
           description || null,
           split_type || "equal",
+          txn_date || new Date(), // use payload txn_date if provided, else default to today
         ]
       );
       const expenseId = result.insertId;

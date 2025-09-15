@@ -143,6 +143,7 @@ export default function GroupDetailPage() {
 
   return (
     <div className="max-w-5xl mx-auto mt-10 font-sans p-6">
+      <title>Group {}</title>
       {/* Back Nav */}
       <div className="mb-6">
         <Link

@@ -34,6 +34,7 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-6xl mx-auto mt-8 px-4 font-sans">
+      <title>Dashboard</title>
       {/* Top Navigation */}
       <nav className="flex justify-between items-center bg-white shadow-md px-6 py-4 rounded-xl mb-8">
         <div className="flex gap-6">

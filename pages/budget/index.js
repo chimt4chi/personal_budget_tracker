@@ -144,6 +144,7 @@ export default function BudgetsPage() {
   return (
     // --- inside BudgetsPage return ---
     <div className="max-w-6xl mx-auto mt-10 font-sans px-4">
+      <title>Create/View Budget</title>
       {/* Top nav */}
       <div className="flex gap-6 mb-8 text-gray-600 text-sm font-medium">
         <Link

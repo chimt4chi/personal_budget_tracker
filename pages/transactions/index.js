@@ -448,6 +448,7 @@ export default function Home() {
 
   return (
     <div className="max-w-6xl mx-auto mt-10 font-sans px-4">
+      <title>Transactions</title>
       {/* Top Nav */}
       <div className="flex gap-6 mb-8 text-gray-700 font-medium">
         <Link href="/" className="hover:text-blue-600 transition">

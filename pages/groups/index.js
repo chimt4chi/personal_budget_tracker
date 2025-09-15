@@ -194,6 +194,7 @@ export default function MyGroupsPage() {
 
   return (
     <div className="max-w-6xl mx-auto mt-10 font-sans px-4">
+      <title>Groups</title>
       {/* Top Nav */}
       <div className="flex gap-6 mb-8 text-gray-600 text-sm font-medium">
         <Link href="/" className="hover:text-blue-600">

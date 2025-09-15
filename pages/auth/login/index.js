@@ -41,6 +41,11 @@ export default function LoginPage() {
   return (
     <div className="flex items-center justify-center h-screen bg-gray-50">
       <title>Login</title>
+      <div className="text-center absolute top-10">
+        <h1 className="text-4xl font-bold text-blue-600">
+          Personal Budget Tracker
+        </h1>
+      </div>
       <form
         onSubmit={handleSubmit}
         className="bg-white p-8 rounded-2xl shadow-lg w-96 border border-gray-100"
@@ -54,6 +59,7 @@ export default function LoginPage() {
         )}
 
         <input
+          required
           type="email"
           placeholder="Email"
           value={email}
@@ -62,6 +68,7 @@ export default function LoginPage() {
         />
 
         <input
+          required
           type="password"
           placeholder="Password"
           value={password}
@@ -72,7 +79,7 @@ export default function LoginPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full flex items-center justify-center bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 transition disabled:opacity-60 disabled:cursor-not-allowed"
+          className="cursor-pointer w-full flex items-center justify-center bg-blue-500 text-white py-3 rounded-lg hover:bg-blue-600 transition disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {loading ? (
             <>
@@ -86,10 +93,16 @@ export default function LoginPage() {
         <button
           type="button"
           onClick={() => router.push("/auth/register")}
-          className="mt-4 w-full py-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition"
+          className="cursor-pointer mt-4 w-full py-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition"
         >
           Don&apos;t have an account?{" "}
           <span className="text-blue-500 font-medium">Register</span>
+        </button>
+        <button
+          onClick={() => router.push("/user-guide")}
+          className="cursor-pointer mt-4 w-full py-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition"
+        >
+          User-Guide
         </button>
       </form>
     </div>

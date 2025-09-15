@@ -49,15 +49,21 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 sm:px-6">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4 sm:px-6">
       <title>Register</title>
+
+      {/* Heading */}
+      <h1 className="text-4xl font-bold text-blue-600 mb-6 text-center">
+        Personal Budget Tracker
+      </h1>
+
       <form
         onSubmit={handleSubmit}
         className="bg-white p-8 sm:p-10 rounded-2xl shadow-xl max-w-md w-full space-y-5 animate-fadeIn"
       >
-        <h1 className="text-2xl font-bold text-gray-800 text-center">
+        <h2 className="text-2xl font-bold text-gray-800 text-center">
           Create Account
-        </h1>
+        </h2>
 
         {error && <p className="text-red-600 text-sm text-center">{error}</p>}
 
@@ -123,7 +129,7 @@ export default function RegisterPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium flex justify-center items-center gap-2 transition disabled:opacity-70"
+          className="cursor-pointer w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium flex justify-center items-center gap-2 transition disabled:opacity-70"
         >
           {loading ? (
             <>
@@ -138,9 +144,16 @@ export default function RegisterPage() {
           type="button"
           onClick={() => router.push("/auth/login")}
           disabled={loading}
-          className="w-full py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 font-medium transition disabled:opacity-70"
+          className="cursor-pointer w-full py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 font-medium transition disabled:opacity-70"
         >
-          Already have an account? Login
+          Already have an account?{" "}
+          <span className="text-blue-500 font-medium">Login</span>
+        </button>
+        <button
+          onClick={() => router.push("/user-guide")}
+          className="cursor-pointer w-full py-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition"
+        >
+          User-Guide
         </button>
       </form>
     </div>

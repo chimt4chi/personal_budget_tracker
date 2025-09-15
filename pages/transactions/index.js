@@ -1,5 +1,5 @@
 "use client";
-import { FaSpinner } from "react-icons/fa";
+import { FaHome, FaSpinner, FaUsers, FaWallet } from "react-icons/fa";
 import { FaChevronDown, FaFileExport, FaFileImport } from "react-icons/fa";
 
 import { useEffect, useState } from "react";
@@ -467,15 +467,27 @@ export default function Home() {
     <div className="max-w-6xl mx-auto mt-10 font-sans px-4">
       <title>Transactions</title>
       {/* Top Nav */}
-      <div className="flex gap-6 mb-8 text-gray-700 font-medium">
-        <Link href="/" className="hover:text-blue-600 transition">
-          Home
+      <div className="flex flex-wrap justify-center sm:justify-start gap-4 sm:gap-6 mb-6">
+        <Link
+          className="text-gray-700 hover:text-blue-600 font-medium flex items-center gap-2 transition"
+          href="/"
+        >
+          <FaHome className="text-lg" />
+          <span className="hidden sm:inline">Home</span>
         </Link>
-        <Link href="/budget" className="hover:text-blue-600 transition">
-          Budget
+        <Link
+          className="text-gray-700 hover:text-blue-600 font-medium flex items-center gap-2 transition"
+          href="/budget"
+        >
+          <FaWallet className="text-lg" />
+          <span className="hidden sm:inline">Budget</span>
         </Link>
-        <Link href="/groups" className="hover:text-blue-600 transition">
-          Groups
+        <Link
+          className="text-gray-700 hover:text-blue-600 font-medium flex items-center gap-2 transition"
+          href="/groups"
+        >
+          <FaUsers className="text-lg" />
+          <span className="hidden sm:inline">Groups</span>
         </Link>
       </div>
 
@@ -483,10 +495,10 @@ export default function Home() {
       <div className="flex flex-col sm:flex-row justify-between gap-4 items-center mb-8">
         <button
           onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-2.5 rounded-xl shadow-lg transition-all duration-300"
+          className="cursor-pointer flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-2.5 rounded-xl shadow-lg transition-all duration-300"
         >
           {showForm ? <FaTimes /> : <FaPlus />}
-          <span className="font-medium">
+          <span className=" font-medium">
             {showForm ? "Close" : "New Transaction"}
           </span>
         </button>
@@ -591,7 +603,7 @@ export default function Home() {
           </div>
           <button
             type="submit"
-            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-3 rounded-xl shadow-lg font-semibold transition-all duration-300"
+            className="cursor-pointer w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-3 rounded-xl shadow-lg font-semibold transition-all duration-300"
           >
             Save Transaction
           </button>
@@ -603,7 +615,7 @@ export default function Home() {
         <div className="relative inline-block text-left">
           <button
             onClick={() => setDropdownOpen((prev) => !prev)}
-            className="flex items-center gap-2 bg-gradient-to-r from-gray-700 to-gray-800 hover:from-gray-800 hover:to-gray-900 text-white px-5 py-2.5 rounded-xl shadow-lg transition-all duration-300"
+            className="cursor-pointer flex items-center gap-2 bg-gradient-to-r from-gray-700 to-gray-800 hover:from-gray-800 hover:to-gray-900 text-white px-5 py-2.5 rounded-xl shadow-lg transition-all duration-300"
           >
             <FaFileExport className="text-sm" />
             <span className="font-medium">Export / Import</span>
@@ -623,7 +635,7 @@ export default function Home() {
                       exportToCSV();
                       setDropdownOpen(false);
                     }}
-                    className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 transition"
+                    className="cursor-pointer w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 transition"
                   >
                     <FaFileExport className="text-green-600" />
                     Export CSV
@@ -635,7 +647,7 @@ export default function Home() {
                       exportToJSON();
                       setDropdownOpen(false);
                     }}
-                    className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 transition"
+                    className="cursor-pointer w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 transition"
                   >
                     <FaFileExport className="text-blue-600" />
                     Export JSON
@@ -723,7 +735,7 @@ export default function Home() {
                 </td>
                 <td className="p-3 flex gap-2 justify-center">
                   <button
-                    className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded-lg shadow transition"
+                    className="cursor-pointer bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded-lg shadow transition"
                     onClick={() => {
                       setEditingTxn(t);
                       setEditForm({
@@ -736,7 +748,7 @@ export default function Home() {
                   </button>
                   <button
                     onClick={() => handleDelete(t.id)}
-                    className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg shadow transition"
+                    className="cursor-pointer bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg shadow transition"
                   >
                     Delete
                   </button>
@@ -908,13 +920,13 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={() => setEditingTxn(null)}
-                  className="px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded-lg transition"
+                  className="cursor-pointer px-4 py-2 bg-gray-300 hover:bg-gray-400 rounded-lg transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition"
+                  className="cursor-pointer px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition"
                 >
                   Update
                 </button>

@@ -12,6 +12,7 @@ import {
   FaSpinner,
   FaUserCircle,
   FaSignOutAlt,
+  FaGuilded,
 } from "react-icons/fa";
 
 export default function Dashboard() {
@@ -77,13 +78,20 @@ export default function Dashboard() {
             <FaUsers className="text-lg" />
             <span className="hidden sm:inline">Groups</span>
           </Link>
+          <Link
+            className="text-gray-700 hover:text-blue-600 font-medium flex items-center gap-2 transition"
+            href="/user-guide"
+          >
+            <FaGuilded className="text-lg" />
+            <span className="hidden sm:inline">User-Guide</span>
+          </Link>
         </div>
 
         {/* Profile Dropdown */}
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setOpenDropdown((prev) => !prev)}
-            className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded-lg transition"
+            className="cursor-pointer flex items-center gap-2 bg-gray-100 hover:bg-gray-200 px-3 py-2 rounded-lg transition"
           >
             <FaUserCircle className="text-xl text-gray-700" />
             {/* Show name only on md+ screens */}
@@ -94,13 +102,13 @@ export default function Dashboard() {
 
           {openDropdown && (
             <div className="absolute right-0 mt-2 w-fit bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-              <div className="px-4 py-3 border-b border-gray-100 whitespace-nowrap">
+              <div className="cursor-default px-4 py-3 border-b border-gray-100 whitespace-nowrap">
                 <p className="font-semibold text-gray-800">{user.name}</p>
                 <p className="text-sm text-gray-500">{user.email}</p>
               </div>
               <button
                 onClick={logout}
-                className="flex items-center gap-2 w-full text-left px-4 py-3 text-red-600 hover:bg-red-50 transition rounded-b-lg"
+                className="cursor-pointer flex items-center gap-2 w-full text-left px-4 py-3 text-red-600 hover:bg-red-50 transition rounded-b-lg"
               >
                 <FaSignOutAlt /> Logout
               </button>

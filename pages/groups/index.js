@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FaSpinner } from "react-icons/fa";
 import { useEffect, useState } from "react";
 import {
   FaTrash,
@@ -37,12 +38,10 @@ export default function MyGroupsPage() {
   // leave group
   const handleLeaveGroup = async (groupId) => {
     if (!window.confirm("Are you sure you want to leave this group?")) return;
-
     setLeavingId(groupId);
     const originalGroups = groups;
     setGroups(groups.filter((g) => g.id !== groupId));
     setError(null);
-
     try {
       const res = await authFetch("/api/groups/leave", {
         method: "DELETE",
@@ -128,11 +127,9 @@ export default function MyGroupsPage() {
   // delete group
   const handleDelete = async (groupId) => {
     if (!window.confirm("Are you sure you want to delete this group?")) return;
-
     setDeletingId(groupId);
     const original = groups;
     setGroups(groups.filter((g) => g.id !== groupId));
-
     try {
       const res = await authFetch("/api/groups", {
         method: "DELETE",
@@ -163,12 +160,10 @@ export default function MyGroupsPage() {
     setEditingId(group.id);
     setEditedName(group.group_name);
   };
-
   const cancelEditing = () => {
     setEditingId(null);
     setEditedName("");
   };
-
   const handleUpdate = async (groupId) => {
     if (!editedName.trim()) {
       setError("Please enter a new group name.");
@@ -192,11 +187,21 @@ export default function MyGroupsPage() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-72 my-8">
+        <FaSpinner className="animate-spin text-4xl text-blue-500" />
+        <span className="ml-4 text-lg text-gray-600">Loading charts...</span>
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-6xl mx-auto mt-10 font-sans px-4">
+    <div className="max-w-6xl mx-auto mt-8 sm:mt-12 font-sans px-4 sm:px-6">
       <title>Groups</title>
+
       {/* Top Nav */}
-      <div className="flex gap-6 mb-8 text-gray-600 text-sm font-medium">
+      <div className="flex gap-4 sm:gap-6 mb-6 sm:mb-8 text-gray-600 text-sm sm:text-base font-medium">
         <Link href="/" className="hover:text-blue-600">
           Home
         </Link>
@@ -209,13 +214,13 @@ export default function MyGroupsPage() {
       </div>
 
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center mb-6 sm:mb-8 gap-4">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-2">
           <FaUsers className="text-blue-600" /> My Groups
         </h1>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl shadow-md flex items-center gap-2 transition"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg shadow-md flex items-center gap-2 text-sm sm:text-base transition"
         >
           <FaPlus /> {showForm ? "Close" : "New Group"}
         </button>
@@ -223,20 +228,20 @@ export default function MyGroupsPage() {
 
       {/* New Group Form */}
       {showForm && (
-        <div className="bg-white p-5 rounded-2xl shadow-lg mb-8 border border-gray-100">
+        <div className="bg-white p-5 sm:p-6 rounded-xl shadow-md mb-8 border border-gray-100">
           <div className="flex gap-3">
             <input
               type="text"
               placeholder="Enter group name"
               value={newGroupName}
               onChange={(e) => setNewGroupName(e.target.value)}
-              className="flex-grow border rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500"
+              className="flex-grow border rounded-lg px-3 py-2.5 text-sm sm:text-base focus:ring-2 focus:ring-blue-500"
               disabled={creatingGroup}
             />
             <button
               onClick={handleCreateGroup}
               disabled={creatingGroup}
-              className="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 transition"
+              className="bg-green-600 hover:bg-green-700 text-white px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg flex items-center gap-2 text-sm sm:text-base transition"
             >
               {creatingGroup ? "Creating..." : "Save"} <FaCheck />
             </button>
@@ -244,19 +249,21 @@ export default function MyGroupsPage() {
         </div>
       )}
 
-      {error && <p className="text-red-500 mb-6">{error}</p>}
+      {error && (
+        <p className="text-red-500 mb-6 text-sm sm:text-base">{error}</p>
+      )}
 
       {/* Groups List */}
       {loading ? (
-        <p className="text-gray-500">Loading...</p>
+        <p className="text-gray-500 text-sm sm:text-base">Loading...</p>
       ) : groups.length === 0 ? (
-        <div className="text-center py-16">
-          <p className="text-gray-500 text-lg mb-6">
+        <div className="text-center py-12 sm:py-16">
+          <p className="text-gray-500 text-base sm:text-lg mb-6">
             You are not a member of any groups.
           </p>
           <button
             onClick={() => setShowForm(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl shadow-md flex items-center gap-2 transition"
+            className="bg-blue-600 hover:bg-blue-700 text-white px-5 sm:px-6 py-2.5 sm:py-3 rounded-lg shadow-md flex items-center gap-2 text-sm sm:text-base transition"
           >
             <FaPlus /> Create Your First Group
           </button>
@@ -266,7 +273,7 @@ export default function MyGroupsPage() {
           {groups.map((g) => (
             <div
               key={g.id}
-              className="bg-white border border-gray-100 rounded-2xl shadow-md hover:shadow-xl transition p-6 flex flex-col justify-between"
+              className="bg-white border border-gray-100 rounded-xl shadow-md hover:shadow-lg transition p-5 sm:p-6 flex flex-col justify-between"
             >
               {editingId === g.id ? (
                 <div className="flex gap-2 items-center mb-4">
@@ -274,7 +281,7 @@ export default function MyGroupsPage() {
                     type="text"
                     value={editedName}
                     onChange={(e) => setEditedName(e.target.value)}
-                    className="flex-grow px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                    className="flex-grow px-3 py-2 border rounded-lg text-sm sm:text-base focus:ring-2 focus:ring-blue-500"
                   />
                   <button
                     onClick={() => handleUpdate(g.id)}
@@ -293,11 +300,11 @@ export default function MyGroupsPage() {
                 <>
                   <Link
                     href={`/groups/${g.id}`}
-                    className="text-lg font-semibold text-blue-600 hover:underline"
+                    className="text-base sm:text-lg font-semibold text-blue-600 hover:underline"
                   >
                     {g.group_name}
                   </Link>
-                  <p className="text-sm text-gray-600 mt-1">
+                  <p className="text-sm sm:text-base text-gray-600 mt-1">
                     Owner:{" "}
                     <span className="font-medium text-gray-700">
                       {g.owner_name}
@@ -310,7 +317,7 @@ export default function MyGroupsPage() {
                 <div className="flex flex-wrap gap-2 mt-5">
                   <button
                     onClick={() => startEditing(g)}
-                    className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm"
+                    className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm sm:text-base"
                   >
                     <FaEdit /> Edit
                   </button>
@@ -318,7 +325,7 @@ export default function MyGroupsPage() {
                     <button
                       onClick={() => handleDelete(g.id)}
                       disabled={deletingId === g.id}
-                      className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm"
+                      className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm sm:text-base"
                     >
                       {deletingId === g.id ? (
                         "Deleting..."
@@ -332,7 +339,7 @@ export default function MyGroupsPage() {
                     <button
                       onClick={() => handleLeaveGroup(g.id)}
                       disabled={leavingId === g.id}
-                      className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm"
+                      className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm sm:text-base"
                     >
                       {leavingId === g.id ? (
                         "Leaving..."
@@ -345,7 +352,7 @@ export default function MyGroupsPage() {
                   )}
                   <Link
                     href={`/groups/${g.id}`}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm"
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm sm:text-base"
                   >
                     View
                   </Link>

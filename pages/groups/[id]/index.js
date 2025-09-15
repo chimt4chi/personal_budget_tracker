@@ -8,6 +8,7 @@ import {
   FaUsers,
   FaBalanceScale,
   FaHandshake,
+  FaSpinner,
 } from "react-icons/fa";
 
 function authFetch(url, options = {}) {
@@ -32,6 +33,7 @@ export default function GroupDetailPage() {
   const [balances, setBalances] = useState([]);
   const [settlements, setSettlements] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   // form states
   const [newMemberEmail, setNewMemberEmail] = useState("");
@@ -67,7 +69,12 @@ export default function GroupDetailPage() {
   };
 
   useEffect(() => {
-    fetchData();
+    const load = async () => {
+      setLoading(true);
+      await fetchData();
+      setLoading(false);
+    };
+    load();
   }, [id]);
 
   const handleAddMember = async () => {
@@ -141,23 +148,37 @@ export default function GroupDetailPage() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex flex-col justify-center items-center h-64">
+        <FaSpinner className="animate-spin text-3xl sm:text-4xl text-blue-500" />
+        <span className="mt-3 text-gray-600 text-sm sm:text-base">
+          Loading...
+        </span>
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-5xl mx-auto mt-10 font-sans p-6">
-      <title>Group {}</title>
+    <div className="max-w-5xl mx-auto mt-6 sm:mt-10 font-sans p-4 sm:p-6">
+      <title>Group Details</title>
+
       {/* Back Nav */}
       <div className="mb-6">
         <Link
           href="/groups"
-          className="flex items-center gap-2 text-blue-600 hover:underline"
+          className="flex items-center gap-2 text-blue-600 hover:underline text-sm sm:text-base"
         >
           ← Back to Groups
         </Link>
       </div>
 
-      <h1 className="text-3xl font-bold mb-6 text-gray-800">Group Details</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold mb-6 text-gray-800">
+        Group Details
+      </h1>
 
       {/* Tabs */}
-      <div className="flex gap-6 mb-6 border-b">
+      <div className="flex flex-wrap gap-4 sm:gap-6 mb-6 border-b">
         {[
           { key: "members", label: "Members", icon: <FaUsers /> },
           { key: "expenses", label: "Expenses", icon: <FaMoneyBill /> },
@@ -166,7 +187,7 @@ export default function GroupDetailPage() {
         ].map((tab) => (
           <button
             key={tab.key}
-            className={`px-4 py-2 flex items-center gap-2 font-medium transition ${
+            className={`px-3 sm:px-4 py-2 flex items-center gap-2 text-sm sm:text-base font-medium transition ${
               activeTab === tab.key
                 ? "border-b-2 border-blue-600 text-blue-600"
                 : "text-gray-600 hover:text-blue-600"
@@ -180,15 +201,15 @@ export default function GroupDetailPage() {
 
       {/* Members */}
       {activeTab === "members" && (
-        <div className="bg-white shadow rounded-xl p-6">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+        <div className="bg-white shadow rounded-xl p-4 sm:p-6">
+          <h2 className="text-base sm:text-lg font-semibold mb-4 flex items-center gap-2">
             <FaUsers className="text-blue-600" /> Group Members
           </h2>
           <ul className="space-y-3 mb-6">
             {members.map((m) => (
               <li
                 key={m.id}
-                className="flex justify-between items-center p-3 border rounded-lg bg-gray-50"
+                className="flex justify-between items-center p-3 border rounded-lg bg-gray-50 text-sm sm:text-base"
               >
                 <span>
                   {m.name} <span className="text-gray-500">({m.email})</span>
@@ -196,7 +217,7 @@ export default function GroupDetailPage() {
                 {m.role !== "admin" && (
                   <button
                     onClick={() => handleRemoveMember(m.id)}
-                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm flex items-center gap-1"
+                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs sm:text-sm flex items-center gap-1"
                   >
                     <FaTrash /> Remove
                   </button>
@@ -223,7 +244,7 @@ export default function GroupDetailPage() {
                   }
                 } else setSuggestions([]);
               }}
-              className="px-3 py-2 border rounded w-full focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-2 border rounded w-full focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
             />
             {suggestions.length > 0 && (
               <ul className="absolute z-10 bg-white border w-full rounded mt-1 shadow">
@@ -245,7 +266,7 @@ export default function GroupDetailPage() {
           </div>
           <button
             onClick={handleAddMember}
-            className="mt-3 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+            className="mt-3 bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-2 rounded-lg text-sm sm:text-base flex items-center gap-2"
           >
             <FaPlus /> Add Member
           </button>
@@ -254,11 +275,11 @@ export default function GroupDetailPage() {
 
       {/* Expenses */}
       {activeTab === "expenses" && (
-        <div className="bg-white shadow rounded-xl p-6">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+        <div className="bg-white shadow rounded-xl p-4 sm:p-6">
+          <h2 className="text-base sm:text-lg font-semibold mb-4 flex items-center gap-2">
             <FaMoneyBill className="text-green-600" /> Expenses
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 mb-6">
             <input
               type="text"
               placeholder="Description"
@@ -266,7 +287,7 @@ export default function GroupDetailPage() {
               onChange={(e) =>
                 setNewExpense({ ...newExpense, description: e.target.value })
               }
-              className="px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-2 border rounded w-full text-sm sm:text-base"
             />
             <input
               type="number"
@@ -275,14 +296,14 @@ export default function GroupDetailPage() {
               onChange={(e) =>
                 setNewExpense({ ...newExpense, amount: e.target.value })
               }
-              className="px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-2 border rounded w-full text-sm sm:text-base"
             />
             <select
               value={newExpense.paid_by}
               onChange={(e) =>
                 setNewExpense({ ...newExpense, paid_by: e.target.value })
               }
-              className="px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-2 border rounded w-full text-sm sm:text-base"
             >
               <option value="">Who Paid?</option>
               {members.map((m) => (
@@ -293,16 +314,16 @@ export default function GroupDetailPage() {
             </select>
             <button
               onClick={handleAddExpense}
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+              className="bg-green-600 hover:bg-green-700 text-white px-3 sm:px-4 py-2 rounded-lg text-sm sm:text-base flex items-center justify-center gap-2"
             >
-              <FaPlus /> Add Expense
+              <FaPlus /> Add
             </button>
           </div>
           <ul className="space-y-3">
             {expenses.map((ex) => (
               <li
                 key={ex.id}
-                className="p-3 border rounded-lg bg-gray-50 flex justify-between"
+                className="p-3 border rounded-lg bg-gray-50 flex justify-between text-sm sm:text-base"
               >
                 <span>
                   {ex.description} —{" "}
@@ -317,8 +338,8 @@ export default function GroupDetailPage() {
 
       {/* Balances */}
       {activeTab === "balances" && (
-        <div className="bg-white shadow rounded-xl p-6">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+        <div className="bg-white shadow rounded-xl p-4 sm:p-6">
+          <h2 className="text-base sm:text-lg font-semibold mb-4 flex items-center gap-2">
             <FaBalanceScale className="text-purple-600" /> Balances
           </h2>
           <ul className="space-y-3 mb-6">
@@ -327,7 +348,7 @@ export default function GroupDetailPage() {
               return (
                 <li
                   key={b.user_id}
-                  className="p-3 border rounded-lg bg-gray-50 flex justify-between"
+                  className="p-3 border rounded-lg bg-gray-50 flex justify-between text-sm sm:text-base"
                 >
                   <span>{member?.name || "Unknown"}</span>
                   <span className="font-medium">
@@ -342,10 +363,14 @@ export default function GroupDetailPage() {
             })}
           </ul>
 
-          <h2 className="text-lg font-semibold mb-4">Suggested Settlements</h2>
+          <h2 className="text-base sm:text-lg font-semibold mb-4">
+            Suggested Settlements
+          </h2>
           <ul className="space-y-3">
             {balances.suggestions?.length === 0 ? (
-              <p className="text-gray-500">All settled 🎉</p>
+              <p className="text-gray-500 text-sm sm:text-base">
+                All settled 🎉
+              </p>
             ) : (
               balances.suggestions.map((s, i) => {
                 const from = members.find((m) => m.id === s.from_user_id);
@@ -353,7 +378,7 @@ export default function GroupDetailPage() {
                 return (
                   <li
                     key={i}
-                    className="p-3 border rounded-lg bg-green-50 flex justify-between"
+                    className="p-3 border rounded-lg bg-green-50 flex justify-between text-sm sm:text-base"
                   >
                     <span>
                       {from?.name} ➝ {to?.name}
@@ -369,17 +394,17 @@ export default function GroupDetailPage() {
 
       {/* Settlements */}
       {activeTab === "settlements" && (
-        <div className="bg-white shadow rounded-xl p-6">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+        <div className="bg-white shadow rounded-xl p-4 sm:p-6">
+          <h2 className="text-base sm:text-lg font-semibold mb-4 flex items-center gap-2">
             <FaHandshake className="text-orange-600" /> Record Settlement
           </h2>
-          <div className="flex gap-3 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
             <select
               value={newSettlement.to}
               onChange={(e) =>
                 setNewSettlement({ ...newSettlement, to: e.target.value })
               }
-              className="px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-2 border rounded text-sm sm:text-base"
             >
               <option value="">Select member</option>
               {members
@@ -397,22 +422,24 @@ export default function GroupDetailPage() {
               onChange={(e) =>
                 setNewSettlement({ ...newSettlement, amount: e.target.value })
               }
-              className="px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-2 border rounded text-sm sm:text-base"
             />
             <button
               onClick={handleAddSettlement}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-2 rounded-lg text-sm sm:text-base"
             >
               Settle
             </button>
           </div>
 
-          <h2 className="text-lg font-semibold mb-4">Past Settlements</h2>
+          <h2 className="text-base sm:text-lg font-semibold mb-4">
+            Past Settlements
+          </h2>
           <ul className="space-y-3">
             {settlements.map((s) => (
               <li
                 key={s.id}
-                className="p-3 border rounded-lg bg-gray-50 flex justify-between"
+                className="p-3 border rounded-lg bg-gray-50 flex justify-between text-sm sm:text-base"
               >
                 <span>
                   {s.from_user} ➝ {s.to_user}

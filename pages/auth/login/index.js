@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { FaSpinner } from "react-icons/fa";
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -9,9 +10,12 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+    setLoading(true);
 
     try {
       const res = await fetch("/api/auth/login", {
@@ -31,6 +35,7 @@ export default function LoginPage() {
     } catch (err) {
       setError("Login failed. Check credentials.");
     }
+    setLoading(true);
   };
 
   return (
@@ -64,7 +69,13 @@ export default function LoginPage() {
           type="submit"
           className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
         >
-          Login
+          {loading ? (
+            <>
+              <FaSpinner className="animate-spin mr-2" /> Logging in...
+            </>
+          ) : (
+            "Login"
+          )}
         </button>
 
         <button

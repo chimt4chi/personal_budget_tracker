@@ -1,4 +1,5 @@
 "use client";
+import { FaSpinner } from "react-icons/fa";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
@@ -37,6 +38,7 @@ export default function Home() {
   });
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const [loading, setLoading] = useState(true);
 
   // ✅ api helper
   const apiCall = async (url, options = {}) => {
@@ -194,6 +196,7 @@ export default function Home() {
   useEffect(() => {
     setCurrentUser(getCurrentUser());
     const loadData = async () => {
+      setLoading(true);
       try {
         const [cat, grp, usr] = await Promise.all([
           apiCall("/api/categories"),
@@ -203,10 +206,11 @@ export default function Home() {
         setCategories(cat);
         setGroups(grp);
         setUsers(usr);
-        fetchTransactions();
+        await fetchTransactions();
       } catch (err) {
         console.error("Init load error:", err);
       }
+      setLoading(false);
     };
     loadData();
   }, []);
@@ -446,6 +450,17 @@ export default function Home() {
     reader.readAsText(file);
   };
 
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <FaSpinner className="animate-spin text-5xl text-blue-600" />
+        <span className="ml-4 text-lg text-gray-700">
+          Loading transactions...
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-6xl mx-auto mt-10 font-sans px-4">
       <title>Transactions</title>
@@ -606,8 +621,8 @@ export default function Home() {
       </div>
 
       {/* Transactions Table */}
-      <div className="bg-white shadow rounded-xl overflow-hidden mt-6 border">
-        <table className="w-full text-sm">
+      <div className="bg-white shadow rounded-xl overflow-x-auto mt-6 border">
+        <table className="w-full min-w-[700px] text-sm">
           <thead className="bg-gray-100 text-gray-700">
             <tr>
               {[
@@ -665,10 +680,22 @@ export default function Home() {
                   ₹{parseFloat(t.amount).toFixed(2)}
                 </td>
                 <td className="p-3 flex gap-2 justify-center">
-                  <button className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded-lg shadow transition">
+                  <button
+                    className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded-lg shadow transition"
+                    onClick={() => {
+                      setEditingTxn(t);
+                      setEditForm({
+                        ...t,
+                        txn_date: formatDateForInput(t.txn_date),
+                      });
+                    }}
+                  >
                     Edit
                   </button>
-                  <button className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg shadow transition">
+                  <button
+                    onClick={() => handleDelete(t.id)}
+                    className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg shadow transition"
+                  >
                     Delete
                   </button>
                 </td>
@@ -725,8 +752,103 @@ export default function Home() {
           <div className="bg-white p-6 rounded-xl w-[500px] shadow-2xl animate-fadeIn border">
             <h2 className="text-lg font-bold mb-4">Edit Transaction</h2>
             {/* form stays same — just styled */}
-            <form className="space-y-4">
-              <input className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500" />
+            <form
+              className="space-y-4"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                try {
+                  const updateData = {
+                    ...editForm,
+                    txn_date: formatDateForDB(editForm.txn_date),
+                  };
+
+                  await apiCall(`/api/transactions/${editingTxn.id}`, {
+                    method: "PUT",
+                    body: JSON.stringify(updateData),
+                  });
+                  fetchTransactions();
+                  setEditingTxn(null);
+                } catch (err) {
+                  alert(err.message);
+                }
+              }}
+            >
+              <input
+                className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
+                type="number"
+                step="0.01"
+                value={editForm.amount}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, amount: e.target.value })
+                }
+                required
+              />
+              <input
+                type="text"
+                value={editForm.description}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, description: e.target.value })
+                }
+                placeholder="Description"
+                className="w-full border p-2 rounded"
+              />
+              <textarea
+                placeholder="Notes (optional)"
+                value={editForm.notes || ""}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, notes: e.target.value })
+                }
+                className="w-full border p-2 rounded resize-none"
+                rows="2"
+              />
+              <select
+                value={editForm.category_id}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, category_id: e.target.value })
+                }
+                className="w-full border p-2 rounded"
+              >
+                <option value="">Select Category</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+              <select
+                name="group_id"
+                value={editForm.group_id}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, group_id: e.target.value })
+                }
+                className="w-full border p-2 rounded text-black"
+              >
+                <option value="">No Group</option>
+                {groups.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.group_name}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={editForm.txn_type}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, txn_type: e.target.value })
+                }
+                className="w-full border p-2 rounded"
+              >
+                <option value="expense">Expense</option>
+                <option value="income">Income</option>
+              </select>
+              <input
+                type="date"
+                value={editForm.txn_date}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, txn_date: e.target.value })
+                }
+                className="w-full border p-2 rounded"
+              />
               {/* ... other fields ... */}
               <div className="flex justify-end gap-2">
                 <button

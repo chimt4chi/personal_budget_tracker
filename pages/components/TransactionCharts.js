@@ -1,4 +1,5 @@
 "use client";
+import { FaSpinner } from "react-icons/fa";
 import { Bar, Pie } from "react-chartjs-2";
 import Chart from "chart.js/auto";
 import { useEffect, useState } from "react";
@@ -7,9 +8,11 @@ import { FaChartBar, FaChartPie, FaBalanceScale } from "react-icons/fa";
 export default function TransactionCharts({ token }) {
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
+      setLoading(true);
       try {
         const txnRes = await fetch("/api/transactions", {
           headers: { Authorization: `Bearer ${token}` },
@@ -25,9 +28,18 @@ export default function TransactionCharts({ token }) {
       } catch (err) {
         console.error("Error fetching data:", err);
       }
+      setLoading(false);
     }
     fetchData();
   }, [token]);
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-72 my-8">
+        <FaSpinner className="animate-spin text-4xl text-blue-500" />
+        <span className="ml-4 text-lg text-gray-600">Loading charts...</span>
+      </div>
+    );
+  }
 
   // category mapping
   const categoryMap = {};

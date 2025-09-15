@@ -73,3 +73,41 @@ pnpm install
 ```yarn dev```
 # or
 ```pnpm dev```
+
+### Now Open ``` http://localhost:3000 ```
+
+
+## Configuration
+### Create a .env.local file for environment variables:
+``` 
+NEXT_PUBLIC_API_URL=your_api_url_here
+NEXT_PUBLIC_ANALYTICS_KEY=your_key_here
+```
+
+## Deployment
+This project is optimized for Vercel.
+To deploy:
+
+#### Push code to GitHub
+
+#### Connect repo to Vercel
+
+#### Set build command: npm run build
+
+#### Start command: npm start
+
+# 🤝 Contributing
+Contributions are welcome!
+## Fork the repo
+
+## Create a feature branch: ```git checkout -b feat/your-feature```
+
+## Commit changes: ```git commit -m "Add new feature"```
+
+## Push branch: ```git push origin feat/your-feature```
+
+## Open a Pull Request 🚀
+
+# 👤 Author
+- Github: @[chimt4chi](https://github.com/chimt4chi)
+- Live Demo: [Link](https://personal-budget-tracker-gilt.vercel.app/auth/login)

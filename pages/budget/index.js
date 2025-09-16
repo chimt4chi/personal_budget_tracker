@@ -43,6 +43,10 @@ export default function BudgetsPage() {
     carryover_policy: "none",
   });
 
+  // Loader states
+  const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
+
   const getCurrentUser = () => {
     try {
       return JSON.parse(localStorage.getItem("user"));
@@ -83,6 +87,7 @@ export default function BudgetsPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSaving(true);
     try {
       const submitData = { ...formData, user_id: currentUser.id };
       if (formData.id) {
@@ -109,23 +114,33 @@ export default function BudgetsPage() {
       fetchBudgets();
     } catch (err) {
       console.error("Error saving budget:", err);
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleDelete = async (id) => {
     if (!confirm("Delete this budget?")) return;
+    setDeletingId(id);
     try {
       await authFetch(`/api/budgets/${id}`, { method: "DELETE" });
       fetchBudgets();
     } catch (err) {
       console.error("Error deleting budget:", err);
+    } finally {
+      setDeletingId(null);
     }
   };
 
   const handleEdit = (budget) => {
+    const date = new Date(budget.period_month);
+    const monthValue = `${date.getFullYear()}-${String(
+      date.getMonth() + 1
+    ).padStart(2, "0")}`;
+
     setFormData({
       ...budget,
-      period_month: budget.period_month.slice(0, 7),
+      period_month: monthValue,
     });
     setShowForm(true);
   };
@@ -146,7 +161,7 @@ export default function BudgetsPage() {
     return (
       <div className="flex justify-center items-center h-72 my-8">
         <FaSpinner className="animate-spin text-4xl text-blue-500" />
-        <span className="ml-4 text-lg text-gray-600">Loading charts...</span>
+        <span className="ml-4 text-lg text-gray-600">Loading budgets...</span>
       </div>
     );
   }
@@ -274,13 +289,27 @@ export default function BudgetsPage() {
           <div className="flex flex-wrap gap-3">
             <button
               type="submit"
-              className="bg-green-600 hover:bg-green-700 text-white px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg flex items-center gap-2 text-sm sm:text-base transition"
+              disabled={saving}
+              className={`${
+                saving
+                  ? "bg-green-400 cursor-not-allowed"
+                  : "bg-green-600 hover:bg-green-700"
+              } text-white px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg flex items-center gap-2 text-sm sm:text-base transition`}
             >
-              <FaCheck /> {formData.id ? "Update" : "Save"}
+              {saving ? (
+                <>
+                  <FaSpinner className="animate-spin" /> Saving...
+                </>
+              ) : (
+                <>
+                  <FaCheck /> {formData.id ? "Update" : "Save"}
+                </>
+              )}
             </button>
             <button
               type="button"
               onClick={() => setShowForm(false)}
+              disabled={saving}
               className="bg-gray-400 hover:bg-gray-500 text-white px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg flex items-center gap-2 text-sm sm:text-base transition"
             >
               <FaTimes /> Cancel
@@ -290,9 +319,7 @@ export default function BudgetsPage() {
       )}
 
       {/* Budgets List */}
-      {loading ? (
-        <p className="text-gray-500 text-sm sm:text-base">Loading...</p>
-      ) : budgets.length === 0 ? (
+      {budgets.length === 0 ? (
         <div className="text-center py-12 sm:py-16">
           <p className="text-gray-500 text-base sm:text-lg mb-6">
             No budgets found.
@@ -323,7 +350,11 @@ export default function BudgetsPage() {
                 </span>
               </div>
 
-              <BudgetProgress id={b.id} />
+              <BudgetProgress
+                id={b.id}
+                month={b.period_month}
+                key={`${b.id}-${b.period_month}`}
+              />
 
               <p className="mt-4 text-sm sm:text-base text-gray-600">
                 Limit:{" "}
@@ -345,9 +376,22 @@ export default function BudgetsPage() {
                 </button>
                 <button
                   onClick={() => handleDelete(b.id)}
-                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm sm:text-base"
+                  disabled={deletingId === b.id}
+                  className={`${
+                    deletingId === b.id
+                      ? "bg-red-400 cursor-not-allowed"
+                      : "bg-red-600 hover:bg-red-700"
+                  } text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm sm:text-base`}
                 >
-                  <FaTrash /> Delete
+                  {deletingId === b.id ? (
+                    <>
+                      <FaSpinner className="animate-spin" /> Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <FaTrash /> Delete
+                    </>
+                  )}
                 </button>
               </div>
             </div>
@@ -359,16 +403,22 @@ export default function BudgetsPage() {
 }
 
 // Progress bar
-function BudgetProgress({ id }) {
+function BudgetProgress({ id, month }) {
   const [progress, setProgress] = useState(null);
 
   useEffect(() => {
+    setProgress(null); // reset before fetching
     fetch(`/api/budgets/${id}/progress`)
       .then((res) => res.json())
       .then((data) => setProgress(data));
-  }, [id]);
+  }, [id, month]); // <-- watch both id & month
 
-  if (!progress) return <span className="text-gray-400">Loading...</span>;
+  if (!progress)
+    return (
+      <div className="flex items-center gap-2 text-gray-400 text-sm">
+        <FaSpinner className="animate-spin" /> Loading...
+      </div>
+    );
 
   const percent = ((progress.spent / progress.limit_amount) * 100).toFixed(1);
 
@@ -377,7 +427,7 @@ function BudgetProgress({ id }) {
       <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
         <div
           className={`h-4 rounded-full transition-all duration-500 ${
-            percent > 100
+            percent >= 90
               ? "bg-gradient-to-r from-red-500 to-red-700"
               : "bg-gradient-to-r from-green-500 to-green-700"
           }`}

@@ -40,8 +40,14 @@ export default function Home() {
   });
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-  const [loading, setLoading] = useState(true);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  // loading states
+  const [loading, setLoading] = useState(true);
+  const [loadingSave, setLoadingSave] = useState(false);
+  const [loadingUpdate, setLoadingUpdate] = useState(false);
+  const [loadingDeleteId, setLoadingDeleteId] = useState(null); // track specific txn being deleted
+  const [loadingExport, setLoadingExport] = useState(false);
+  const [loadingImport, setLoadingImport] = useState(false);
 
   // ✅ api helper
   const apiCall = async (url, options = {}) => {
@@ -276,6 +282,7 @@ export default function Home() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoadingSave(true);
     try {
       const user_id = currentUser?.id;
       const formData = {
@@ -303,20 +310,6 @@ export default function Home() {
           alert("Group has no members");
           return;
         }
-
-        await apiCall(`/api/groups/${form.group_id}/expenses`, {
-          method: "POST",
-          body: JSON.stringify({
-            paid_by: parseInt(user_id),
-            amount: parseFloat(form.amount),
-            description: form.description || "Group Expense",
-            split_type: "equal",
-            split_details: members.map((m) => ({
-              user_id: m.id,
-              share_amount: parseFloat(form.amount) / members.length,
-            })),
-          }),
-        });
       }
 
       fetchTransactions(); // ✅ Refresh UI
@@ -332,16 +325,19 @@ export default function Home() {
     } catch (err) {
       alert(err.message);
     }
+    setLoadingSave(false);
   };
 
   const handleDelete = async (id) => {
     if (!confirm("Delete this transaction?")) return;
+    setLoadingDeleteId(id);
     try {
       await apiCall(`/api/transactions/${id}`, { method: "DELETE" });
       fetchTransactions();
     } catch (err) {
       alert(err.message);
     }
+    setLoadingDeleteId(null);
   };
 
   // ✅ Get processed transactions (filtered and sorted)
@@ -467,27 +463,24 @@ export default function Home() {
     <div className="max-w-6xl mx-auto mt-10 font-sans px-4">
       <title>Transactions</title>
       {/* Top Nav */}
-      <div className="flex flex-wrap justify-center sm:justify-start gap-4 sm:gap-6 mb-6">
+      <div className="flex flex-wrap gap-4 sm:gap-6 mb-6 sm:mb-8 text-gray-600 text-sm sm:text-base font-medium">
         <Link
-          className="text-gray-700 hover:text-blue-600 font-medium flex items-center gap-2 transition"
-          href="/"
+          className="hover:text-blue-600 flex items-center gap-2"
+          href={"/"}
         >
-          <FaHome className="text-lg" />
-          <span className="hidden sm:inline">Home</span>
+          <FaHome /> Home
         </Link>
         <Link
-          className="text-gray-700 hover:text-blue-600 font-medium flex items-center gap-2 transition"
-          href="/budget"
+          className="hover:text-blue-600 flex items-center gap-2"
+          href={"/budget"}
         >
-          <FaWallet className="text-lg" />
-          <span className="hidden sm:inline">Budget</span>
+          <FaWallet className="text-lg" /> Budget
         </Link>
         <Link
-          className="text-gray-700 hover:text-blue-600 font-medium flex items-center gap-2 transition"
-          href="/groups"
+          className="hover:text-blue-600 flex items-center gap-2"
+          href={"/groups"}
         >
-          <FaUsers className="text-lg" />
-          <span className="hidden sm:inline">Groups</span>
+          <FaUsers /> Groups
         </Link>
       </div>
 
@@ -602,10 +595,12 @@ export default function Home() {
             </select>
           </div>
           <button
+            disabled={loadingSave}
             type="submit"
-            className="cursor-pointer w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-3 rounded-xl shadow-lg font-semibold transition-all duration-300"
+            className="cursor-pointer w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-3 rounded-xl shadow-lg font-semibold transition-all duration-300"
           >
-            Save Transaction
+            {loadingSave && <FaSpinner className="animate-spin" />}
+            {loadingSave ? "Saving..." : "Save Transaction"}
           </button>
         </form>
       )}
@@ -631,14 +626,25 @@ export default function Home() {
               <ul className="py-2 text-sm text-gray-700">
                 <li>
                   <button
-                    onClick={() => {
+                    onClick={async () => {
+                      setLoadingExport(true);
                       exportToCSV();
+                      setTimeout(() => setLoadingExport(false), 1000);
                       setDropdownOpen(false);
                     }}
-                    className="cursor-pointer w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 transition"
+                    disabled={loadingExport}
+                    className="cursor-pointer flex items-center gap-2 w-full px-4 py-2 hover:bg-gray-100 transition disabled:opacity-60"
                   >
-                    <FaFileExport className="text-green-600" />
-                    Export CSV
+                    {loadingExport ? (
+                      <>
+                        <FaSpinner className="animate-spin text-green-600" />{" "}
+                        Exporting...
+                      </>
+                    ) : (
+                      <>
+                        <FaFileExport className="text-green-600" /> Export CSV
+                      </>
+                    )}
                   </button>
                 </li>
                 <li>
@@ -654,17 +660,28 @@ export default function Home() {
                   </button>
                 </li>
                 <li>
-                  <label className="w-full flex items-center gap-2 px-4 py-2 cursor-pointer hover:bg-gray-100 transition">
-                    <FaFileImport className="text-gray-600" />
-                    Import File
+                  <label className="w-full flex items-center gap-2 px-4 py-2 cursor-pointer hover:bg-gray-100 transition disabled:opacity-60">
+                    {loadingImport ? (
+                      <>
+                        <FaSpinner className="animate-spin text-gray-600" />{" "}
+                        Importing...
+                      </>
+                    ) : (
+                      <>
+                        <FaFileImport className="text-gray-600" /> Import File
+                      </>
+                    )}
                     <input
                       type="file"
                       accept=".csv,.json"
-                      onChange={(e) => {
-                        importTransactions(e);
+                      onChange={async (e) => {
+                        setLoadingImport(true);
+                        await importTransactions(e);
+                        setLoadingImport(false);
                         setDropdownOpen(false);
                       }}
                       className="hidden"
+                      disabled={loadingImport}
                     />
                   </label>
                 </li>
@@ -747,10 +764,14 @@ export default function Home() {
                     Edit
                   </button>
                   <button
+                    disabled={loadingDeleteId === t.id}
                     onClick={() => handleDelete(t.id)}
-                    className="cursor-pointer bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg shadow transition"
+                    className="cursor-pointer flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg shadow transition disabled:opacity-60"
                   >
-                    Delete
+                    {loadingDeleteId === t.id && (
+                      <FaSpinner className="animate-spin" />
+                    )}
+                    {loadingDeleteId === t.id ? "Deleting..." : "Delete"}
                   </button>
                 </td>
               </tr>
@@ -810,6 +831,7 @@ export default function Home() {
               className="space-y-4"
               onSubmit={async (e) => {
                 e.preventDefault();
+                setLoadingUpdate(true);
                 try {
                   const updateData = {
                     ...editForm,
@@ -837,6 +859,7 @@ export default function Home() {
                 } catch (err) {
                   alert(err.message);
                 }
+                setLoadingUpdate(false);
               }}
             >
               <input
@@ -925,10 +948,12 @@ export default function Home() {
                   Cancel
                 </button>
                 <button
+                  disabled={loadingUpdate}
                   type="submit"
-                  className="cursor-pointer px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition"
+                  className="cursor-pointer flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition disabled:opacity-60"
                 >
-                  Update
+                  {loadingUpdate && <FaSpinner className="animate-spin" />}
+                  {loadingUpdate ? "Updating..." : "Update"}
                 </button>
               </div>
             </form>

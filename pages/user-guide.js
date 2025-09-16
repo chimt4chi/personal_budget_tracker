@@ -4,6 +4,16 @@ import { useRouter } from "next/navigation";
 export default function UserGuide() {
   const router = useRouter();
 
+  const goToLogin = (e) => {
+    e.preventDefault();
+    router.push("/auth/login");
+  };
+
+  const goToRegister = (e) => {
+    e.preventDefault();
+    router.push("/auth/register");
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-6 flex flex-col items-center">
       <title>User Guide - Personal Budget Tracker</title>
@@ -80,24 +90,19 @@ export default function UserGuide() {
               <strong>A:</strong> Yes, your data is stored securely and only
               accessible to you.
             </p>
-            <p>
-              <strong>Q:</strong> Can I change my currency or time zone later?
-              <br />
-              <strong>A:</strong> Yes, visit your settings page once logged in.
-            </p>
           </div>
         </section>
 
         {/* Navigation Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 pt-6">
           <button
-            onClick={() => router.push("/auth/login")}
+            onClick={goToLogin}
             className="cursor-pointer w-full py-3 rounded-lg border border-blue-500 text-blue-500 hover:bg-blue-50 font-medium transition"
           >
             🔐 Back to Login
           </button>
           <button
-            onClick={() => router.push("/auth/register")}
+            onClick={goToRegister}
             className="cursor-pointer w-full py-3 rounded-lg border border-green-500 text-green-600 hover:bg-green-50 font-medium transition"
           >
             📝 Go to Register

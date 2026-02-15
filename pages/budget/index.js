@@ -47,6 +47,13 @@ export default function BudgetsPage() {
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
 
+  const [showCategoryForm, setShowCategoryForm] = useState(false);
+  const [newCategory, setNewCategory] = useState({
+    name: "",
+    kind: "expense",
+  });
+  const [addingCategory, setAddingCategory] = useState(false);
+
   const getCurrentUser = () => {
     try {
       return JSON.parse(localStorage.getItem("user"));
@@ -135,7 +142,7 @@ export default function BudgetsPage() {
   const handleEdit = (budget) => {
     const date = new Date(budget.period_month);
     const monthValue = `${date.getFullYear()}-${String(
-      date.getMonth() + 1
+      date.getMonth() + 1,
     ).padStart(2, "0")}`;
 
     setFormData({
@@ -155,6 +162,35 @@ export default function BudgetsPage() {
       carryover_policy: "none",
     });
     setShowForm(true);
+  };
+
+  const handleAddCategory = async (e) => {
+    e.preventDefault();
+    if (!newCategory.name) return;
+
+    setAddingCategory(true);
+    try {
+      const res = await authFetch("/api/categories", {
+        method: "POST",
+        body: JSON.stringify(newCategory),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        // Refresh categories
+        const catRes = await authFetch("/api/categories");
+        const cats = await catRes.json();
+        setCategories(Array.isArray(cats) ? cats : []);
+
+        setShowCategoryForm(false);
+        setNewCategory({ name: "", kind: "expense" });
+      }
+    } catch (err) {
+      console.error("Error adding category:", err);
+    } finally {
+      setAddingCategory(false);
+    }
   };
 
   if (loading) {
@@ -229,20 +265,30 @@ export default function BudgetsPage() {
             </div>
 
             {/* Category */}
-            <select
-              name="category_id"
-              value={formData.category_id}
-              onChange={handleChange}
-              required
-              className="border rounded-lg px-3 py-2.5 w-full text-sm sm:text-base focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Select Category</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+            <div className="flex gap-2">
+              <select
+                name="category_id"
+                value={formData.category_id}
+                onChange={handleChange}
+                required
+                className="border rounded-lg px-3 py-2.5 w-full text-sm sm:text-base focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Select Category</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+
+              <button
+                type="button"
+                onClick={() => setShowCategoryForm(true)}
+                className="bg-blue-500 hover:bg-blue-600 text-white px-3 rounded-lg flex items-center"
+              >
+                <FaPlus />
+              </button>
+            </div>
 
             {/* Month */}
             <div className="relative">
@@ -316,6 +362,66 @@ export default function BudgetsPage() {
             </button>
           </div>
         </form>
+      )}
+
+      {showCategoryForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <form
+            onSubmit={handleAddCategory}
+            className="bg-white p-6 rounded-xl shadow-lg w-80 space-y-4"
+          >
+            <h2 className="text-lg font-semibold">Add Category</h2>
+
+            <input
+              type="text"
+              placeholder="Category Name"
+              value={newCategory.name}
+              onChange={(e) =>
+                setNewCategory({ ...newCategory, name: e.target.value })
+              }
+              required
+              className="border rounded-lg px-3 py-2 w-full"
+            />
+
+            <select
+              value={newCategory.kind}
+              onChange={(e) =>
+                setNewCategory({ ...newCategory, kind: e.target.value })
+              }
+              className="border rounded-lg px-3 py-2 w-full"
+            >
+              <option value="expense">Expense</option>
+              <option value="income">Income</option>
+              <option value="both">Both</option>
+            </select>
+
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowCategoryForm(false)}
+                className="bg-gray-400 text-white px-3 py-1 rounded"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="submit"
+                disabled={addingCategory}
+                className="bg-green-600 text-white px-3 py-1 rounded flex items-center gap-2"
+              >
+                {addingCategory ? (
+                  <>
+                    <FaSpinner className="animate-spin" /> Saving
+                  </>
+                ) : (
+                  <>
+                    <FaCheck /> Add
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
       )}
 
       {/* Budgets List */}

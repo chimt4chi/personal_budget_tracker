@@ -3,13 +3,13 @@ import { pool } from "@/lib/db";
 export default async function handler(req, res) {
   if (req.method === "POST") {
     try {
-      const { name, type } = req.body;
-      if (!name || !type)
+      const { name, kind } = req.body;
+      if (!name || !kind)
         return res.status(400).json({ error: "Missing fields" });
 
       const [result] = await pool.query(
-        "INSERT INTO categories (name, type) VALUES (?, ?)",
-        [name, type]
+        "INSERT INTO categories (name, kind) VALUES (?, ?)",
+        [name, kind],
       );
       return res
         .status(201)
